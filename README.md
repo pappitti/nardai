@@ -1,15 +1,17 @@
-# AI Town 🏠💻💌
+# nard AI
 
-[Live Demo](https://www.convex.dev/ai-town)
+<img width="1454" alt="Screen Shot 2023-08-14 at 10 01 00 AM" src="https://pitti-backend-assets.ams3.cdn.digitaloceanspaces.com/nard-ai/nard-ai-cover.png">
 
-[Join our community Discord: AI Stack Devs](https://discord.gg/PQUmTBTGmT)
+nard AI is my own implementation of a16z's [AI Town project](https://github.com/a16z-infra/ai-town), inspired by the research paper [_Generative Agents: Interactive Simulacra of Human Behavior_](https://arxiv.org/pdf/2304.03442.pdf). 
 
-<img width="1454" alt="Screen Shot 2023-08-14 at 10 01 00 AM" src="https://github.com/a16z-infra/ai-town/assets/3489963/a4c91f17-23ed-47ec-8c4e-9f9a8505057d">
+In nard AI, AI characters are members of an asset management firm and live, chat and socialize. My notes on this project, including how it differs from the orignial Ai-Town are available [here](https://www.pitti.io/projects/nard-ai) 
 
-AI Town is a virtual town where AI characters live, chat and socialize.
+Otherwise, I keep below the content of the original README detailing how to install and run the code.  
+
+[AI Town Live Demo](https://www.convex.dev/ai-town)
 
 This project is a deployable starter kit for easily building and customizing your own version of AI town.
-Inspired by the research paper [_Generative Agents: Interactive Simulacra of Human Behavior_](https://arxiv.org/pdf/2304.03442.pdf).
+
 
 The primary goal of this project, beyond just being a lot of fun to work on,
 is to provide a platform with a strong foundation that is meant to be extended.
@@ -209,7 +211,9 @@ export const characters = [
 ];
 ```
 
-You should find a sprite sheet for your character, and define sprite motion / assets in the corresponding file (in the above example, `f1SpritesheetData` was defined in f1.ts)
+You should find a sprite sheet for your character, and define sprite motion / assets in the corresponding file (in the above example, `f1SpritesheetData` was defined in f1.ts) 
+ 
+NOTE : in nard AI, the characters have more properties and spritesheetData is fetched slightly differently. Please refer to the [project page](https://www.pitti.io/projects/nard-ai) 
 
 3. Update the Background (Environment): The map gets loaded in `convex/init.ts` from `data/gentle.js`. To update the map, follow these steps:
 
