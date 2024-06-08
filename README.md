@@ -4,17 +4,16 @@
 
 nard AI is my own implementation of a16z's [AI Town project](https://github.com/a16z-infra/ai-town), inspired by the research paper [_Generative Agents: Interactive Simulacra of Human Behavior_](https://arxiv.org/pdf/2304.03442.pdf). 
 
-In nard AI, AI characters are members of an asset management firm and live, chat and socialize. My notes on this project, including how it differs from the orignial Ai-Town are available [here](https://www.pitti.io/projects/nard-ai) 
+This project started as a satire so its primary goal of was to have fun while laying the foundation of more serious projects with AI Agents. In nard AI, AI characters are members of an asset management firm and live, chat and socialize. My notes on this project, including how it differs from the orignial Ai-Town are available [here](https://www.pitti.io/projects/nard-ai) 
 
 Otherwise, I keep below the content of the original README detailing how to install and run the code.  
+
+# AI Town READ ME
 
 [AI Town Live Demo](https://www.convex.dev/ai-town)
 
 This project is a deployable starter kit for easily building and customizing your own version of AI town.
 
-
-The primary goal of this project, beyond just being a lot of fun to work on,
-is to provide a platform with a strong foundation that is meant to be extended.
 The back-end natively supports shared global state, transactions, and a simulation engine
 and should be suitable from everything from a simple project to play around with to a scalable, multi-player game.
 A secondary goal is to make a JS/TS framework available as most simulators in this space
