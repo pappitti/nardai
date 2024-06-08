@@ -150,7 +150,7 @@ export async function leaveConversationMessage(
   prompt.push(
     `Below is the current chat history between you and ${otherPlayer.name}.`,
     `How would you like to tell them that you're leaving? Your response should be brief and within 200 characters.`,
-  );
+  ); 
   const llmMessages: LLMMessage[] = [
     {
       role: 'user',
@@ -175,18 +175,18 @@ export async function leaveConversationMessage(
   return content;
 }
 
-function agentPrompts(
+function agentPrompts( // adding teams here
   otherPlayer: { name: string },
-  agent: { identity: string; plan: string } | null,
-  otherAgent: { identity: string; plan: string } | null,
+  agent: { identity: string; plan: string; teamType:string } | null,
+  otherAgent: { identity: string; plan: string; teamType:string } | null,
 ): string[] {
   const prompt = [];
   if (agent) {
-    prompt.push(`About you: ${agent.identity}`);
+    prompt.push(`About you: ${agent.identity}. You are part of ${agent.teamType}`);
     prompt.push(`Your goals for the conversation: ${agent.plan}`);
   }
   if (otherAgent) {
-    prompt.push(`About ${otherPlayer.name}: ${otherAgent.identity}`);
+    prompt.push(`About ${otherPlayer.name}: ${otherAgent.identity}. They are part of ${otherAgent.teamType}`);
   }
   return prompt;
 }
@@ -327,10 +327,15 @@ export const queryPromptData = internalQuery({
       player: { name: playerDescription.name, ...player },
       otherPlayer: { name: otherPlayerDescription.name, ...otherPlayer },
       conversation,
-      agent: { identity: agentDescription.identity, plan: agentDescription.plan, ...agent },
+      agent: { 
+        identity: agentDescription.identity, 
+        plan: agentDescription.plan,  
+        teamType: agentDescription.teamType,
+        ...agent },
       otherAgent: otherAgent && {
         identity: otherAgentDescription!.identity,
         plan: otherAgentDescription!.plan,
+        teamType: otherAgentDescription!.teamType,
         ...otherAgent,
       },
       lastConversation,

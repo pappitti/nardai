@@ -75,12 +75,11 @@ export function MessageInput({
   };
   return (
     <div className="leading-tight mb-6">
-      <div className="flex gap-4">
-        <span className="uppercase flex-grow">{humanName}</span>
+      <div className="flex gap-4 text-slate-700 mb-2">
+        <span className="uppercase">{humanName}</span>
       </div>
-      <div className={clsx('bubble', 'bubble-mine')}>
+      <div className={'bubble-mine'}>
         <p
-          className="bg-white -mx-3 -my-1"
           ref={inputRef}
           contentEditable
           style={{ outline: 'none' }}

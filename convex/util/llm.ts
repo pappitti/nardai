@@ -5,10 +5,11 @@ export const LLM_CONFIG = {
    */
   ollama: true,
   url: 'http://127.0.0.1:11434',
-  chatModel: 'llama3' as const,
+  chatModel: 'llama3:8b' as const,//hermes2llama38b, llama3:8b, adrienbrault/nous-hermes2theta-llama3-8b:q5_K_M
   embeddingModel: 'mxbai-embed-large',
   embeddingDimension: 1024,
-  stopWords: ['<|eot_id|>'],
+  stopWords: ['<|eot_id|>','<|im_end|>'],//['<|eot_id|>','<|im_end|>']
+  // chatModel: 'llama3' as const, // Default from AiTown
   // embeddingModel: 'llama3',
   // embeddingDimension: 4096,
 
@@ -24,7 +25,7 @@ export const LLM_CONFIG = {
   /* OpenAI config:
   ollama: false,
   url: 'https://api.openai.com',
-  chatModel: 'gpt-3.5-turbo',
+  chatModel: 'gpt-3.5-turbo-16k',
   embeddingModel: 'text-embedding-ada-002',
   embeddingDimension: 1536,
    */
@@ -357,7 +358,10 @@ export interface CreateChatCompletionRequest {
   // | 'gpt-4-0613'
   // | 'gpt-4-32k'
   // | 'gpt-4-32k-0613'
-  // | 'gpt-3.5-turbo'; // <- our default
+  // | 'gpt-3.5-turbo'
+  // | 'gpt-3.5-turbo-0613'
+  // | 'gpt-3.5-turbo-16k' // <- our default
+  // | 'gpt-3.5-turbo-16k-0613';
   /**
    * The messages to generate chat completions for, in the chat format:
    * https://platform.openai.com/docs/guides/chat/introduction

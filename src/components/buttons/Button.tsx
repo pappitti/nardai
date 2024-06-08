@@ -12,17 +12,17 @@ export default function Button(props: {
   return (
     <a
       className={clsx(
-        'button text-white shadow-solid text-xl pointer-events-auto',
+        'button text-gray-400 shadow-solid pointer-events-auto',
         props.className,
       )}
       href={props.href}
       title={props.title}
       onClick={props.onClick}
     >
-      <div className="inline-block bg-clay-700">
+      <div className="inline-block bg-gray-300">
         <span>
           <div className="inline-flex h-full items-center gap-4">
-            <img className="w-4 h-4 sm:w-[30px] sm:h-[30px]" src={props.imgUrl} />
+            <img className="w-4 h-4" src={props.imgUrl} />
             {props.children}
           </div>
         </span>

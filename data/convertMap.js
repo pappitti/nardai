@@ -39,7 +39,8 @@ function convertLayerData(layerData, width, height) {
       newArray[i][j] = layerData[j * width + i] - 1;
     }
   }
-  return [newArray];
+  //return [newArray]; // in original code
+  return newArray;
 }
 
 // Process each layer and prepare JS module content
@@ -51,10 +52,21 @@ jsContent += `export const screenytiles = ${height};\n`;
 jsContent += `export const tilesetpxw = ${tilesetpxw};\n`;
 jsContent += `export const tilesetpxh = ${tilesetpxh};\n\n`;
 
-tiledMapData.layers.forEach(layer => {
-  const processedData = convertLayerData(layer.data, layer.width, layer.height);
-  jsContent += `export const ${layer.name} = ${JSON.stringify(processedData)};\n`;
-});
+// in original code
+// tiledMapData.layers.forEach(layer => {
+//   const processedData = convertLayerData(layer.data, layer.width, layer.height);
+//   jsContent += `export const ${layer.name} = ${JSON.stringify(processedData)};\n`;
+// });
+
+// replacing original code 
+const processedData = tiledMapData.layers
+  .filter(layer => layer.type === 'tilelayer')
+  .map(layer => convertLayerData(layer.data,layer.width, layer.height));
+
+jsContent += `export const bgtiles = ${JSON.stringify(processedData)};\n\n`;
+
+// added to original code to handle object layers
+jsContent += `export const objmap = [];\n\n`;
 
 // TODO: Add animated sprites
 jsContent += `export const animatedsprites = [
@@ -69,6 +81,6 @@ if (tiledMapData.layers.length > 0) {
 }
 
 // Write the processed data to the final JS file
-fs.writeFileSync('converted-map.js', jsContent);
+fs.writeFileSync('data/converted-map.js', jsContent);
 
 console.log('Map conversion and JS module creation complete.');

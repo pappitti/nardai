@@ -63,7 +63,16 @@ export default function InteractButton() {
   // if (!isAuthenticated || game === undefined) {
   //   return (
   //     <SignInButton>
-  //       <Button imgUrl={interactImg}>Interact</Button>
+  //       <button className="button text-white shadow-solid text-2xl pointer-events-auto">
+  //         <div className="inline-block bg-clay-700">
+  //           <span>
+  //             <div className="inline-flex h-full items-center gap-4">
+  //               <img className="w-4 h-4 sm:w-[30px] sm:h-[30px]" src={interactImg} />
+  //               Interact
+  //             </div>
+  //           </span>
+  //         </div>
+  //       </button>
   //     </SignInButton>
   //   );
   // }

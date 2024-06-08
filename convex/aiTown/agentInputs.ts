@@ -147,6 +147,7 @@ export const agentInputs = {
           agentId: agentId,
           identity: description.identity,
           plan: description.plan,
+          teamType: description.teamType,
         }),
       );
       return { agentId };

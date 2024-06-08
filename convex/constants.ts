@@ -65,9 +65,14 @@ export const DELETE_BATCH_SIZE = 64;
 export const HUMAN_IDLE_TOO_LONG = 5 * 60 * 1000;
 
 export const ACTIVITIES = [
-  { description: 'reading a book', emoji: '📖', duration: 60_000 },
-  { description: 'daydreaming', emoji: '🤔', duration: 60_000 },
-  { description: 'gardening', emoji: '🥕', duration: 60_000 },
+  { description: 'Writing a memo', emoji: '📝', duration: 60_000, teams: ['investment team']},
+  { description: 'Doing due diligence', emoji: '📚', duration: 60_000, teams: ['investment team']},
+  { description: 'Daydreaming about a promotion', emoji: '🤔', duration: 60_000 , teams: ['investment team', 'support function', 'IT team']},
+  { description: 'Writing specs for IT project', emoji: '🦃', duration: 60_000, teams: ['support function', 'investment team'] },
+  { description: 'Writing a support ticket', emoji: '🖥️', duration: 60_000, teams: ['IT team']},
+  { description: 'Calling clients', emoji: '📞', duration: 60_000, teams: ['investor relations', 'investment team']},
+  { description: 'Writing a report', emoji: '📊', duration: 60_000, teams: ['support', 'investment team', 'IT team']},
+  { description: 'Calling lawyers', emoji: '📞', duration: 60_000, teams: ['investmen team', 'support function']},
 ];
 
 export const ENGINE_ACTION_DURATION = 30000;

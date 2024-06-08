@@ -2,7 +2,7 @@ import Game from './components/Game.tsx';
 
 import { ToastContainer } from 'react-toastify';
 import a16zImg from '../assets/a16z.png';
-import convexImg from '../assets/convex.svg';
+import pittiImg from '../assets/pitti.svg';
 import starImg from '../assets/star.svg';
 import helpImg from '../assets/help.svg';
 // import { UserButton } from '@clerk/clerk-react';
@@ -72,13 +72,13 @@ export default function Home() {
         </Unauthenticated>
       </div> */}
 
-      <div className="w-full lg:h-screen min-h-screen relative isolate overflow-hidden lg:p-8 shadow-2xl flex flex-col justify-start">
-        <h1 className="mx-auto text-4xl p-3 sm:text-8xl lg:text-9xl font-bold font-display leading-none tracking-wide game-title w-full text-left sm:text-center sm:w-auto">
-          AI Town
+      <div className="w-full lg:h-screen min-h-screen relative isolate overflow-hidden shadow-2xl flex flex-col justify-start items-center">
+        <h1 className="mx-auto text-4xl p-2 sm:text-8xl font-bold font-display leading-none tracking-wide game-title w-full text-left text-center w-auto">
+          nard AI
         </h1>
 
-        <div className="max-w-xs md:max-w-xl lg:max-w-none mx-auto my-4 text-center text-base sm:text-xl md:text-2xl text-white leading-tight shadow-solid">
-          A virtual town where AI characters live, chat and socialize.
+        <div className="max-w-xs md:max-w-xl lg:max-w-none mx-auto text-center text-sm sm:text-base md:text-xl text-white leading-tight shadow-solid">
+          A virtual asset manager where AI characters generate a ton of value for investors.
           {/* <Unauthenticated>
             <div className="my-1.5 sm:my-0" />
             Log in to join the town
@@ -88,24 +88,29 @@ export default function Home() {
 
         <Game />
 
-        <footer className="justify-end bottom-0 left-0 w-full flex items-center mt-4 gap-3 p-6 flex-wrap pointer-events-none">
-          <div className="flex gap-4 flex-grow pointer-events-none">
-            <FreezeButton />
-            <MusicButton />
-            <Button href="https://github.com/a16z-infra/ai-town" imgUrl={starImg}>
-              Star
-            </Button>
-            <InteractButton />
-            <Button imgUrl={helpImg} onClick={() => setHelpModalOpen(true)}>
-              Help
-            </Button>
+        <footer className="bottom-0 left-0 w-full flex px-6 pb-6 pointer-events-none justify-center">
+          <div className='flex w-full flex-wrap justify-center items-center gap-3 max-w-[1400px]'>
+            <div className="flex gap-4 flex-grow pointer-events-none justify-center min-[600px]:justify-start">
+              <FreezeButton />
+              <MusicButton />
+              <Button href="https://github.com/a16z-infra/ai-town" imgUrl={starImg}>
+                Star
+              </Button>
+              <InteractButton />
+              <Button imgUrl={helpImg} onClick={() => setHelpModalOpen(true)}>
+                Help
+              </Button>
+            </div>
+            <div className="flex flex-nowrap">
+              <a href="https://pitti.io">
+                <img className="w-20 h-8 pointer-events-auto" src={pittiImg} alt="PITTI" />
+              </a>
+              <div className="text-white text-xs text-center flex flex-wrap max-w-[80px]"> based on a project by</div>
+              <a className="" href="https://a16z.com">
+                <img className="w-8 h-8 pointer-events-auto" src={a16zImg} alt="a16z" />
+              </a>
+            </div>
           </div>
-          <a href="https://a16z.com">
-            <img className="w-8 h-8 pointer-events-auto" src={a16zImg} alt="a16z" />
-          </a>
-          <a href="https://convex.dev/c/ai-town">
-            <img className="w-20 h-8 pointer-events-auto" src={convexImg} alt="Convex" />
-          </a>
         </footer>
         <ToastContainer position="bottom-right" autoClose={2000} closeOnClick theme="dark" />
       </div>
@@ -113,6 +118,7 @@ export default function Home() {
   );
 }
 
+//TODO
 const modalStyles = {
   overlay: {
     backgroundColor: 'rgb(0, 0, 0, 75%)',

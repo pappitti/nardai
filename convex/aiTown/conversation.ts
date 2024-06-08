@@ -189,7 +189,7 @@ export class Conversation {
     }
     this.stop(game, now);
   }
-
+ 
   stop(game: Game, now: number) {
     delete this.isTyping;
     for (const [playerId, member] of this.participants.entries()) {
