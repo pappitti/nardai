@@ -41,7 +41,7 @@ A secondary goal is to make a JS/TS framework available as most simulators in th
 
 ## Installation
 
-**Note**: There is a one-click install of a fork of this project on
+**Note**: There is a one-click install of a fork of the Ai-Town project on
 [Pinokio](https://pinokio.computer/item?uri=https://github.com/cocktailpeanutlabs/aitown)
 for anyone interested in running but not modifying it 😎
 
@@ -212,7 +212,7 @@ export const characters = [
 
 You should find a sprite sheet for your character, and define sprite motion / assets in the corresponding file (in the above example, `f1SpritesheetData` was defined in f1.ts) 
  
-NOTE : in nard AI, the characters have more properties and spritesheetData is fetched slightly differently. Please refer to the [project page](https://www.pitti.io/projects/nard-ai) 
+**Note**: in nard AI, the characters have more properties and spritesheetData is fetched slightly differently. Please refer to the [project page](https://www.pitti.io/projects/nard-ai) 
 
 3. Update the Background (Environment): The map gets loaded in `convex/init.ts` from `data/gentle.js`. To update the map, follow these steps:
 
