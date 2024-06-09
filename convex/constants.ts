@@ -70,9 +70,10 @@ export const ACTIVITIES = [
   { description: 'Daydreaming about a promotion', emoji: '🤔', duration: 60_000 , teams: ['investment team', 'support function', 'IT team']},
   { description: 'Writing specs for IT project', emoji: '🦃', duration: 60_000, teams: ['support function', 'investment team'] },
   { description: 'Writing a support ticket', emoji: '🖥️', duration: 60_000, teams: ['IT team']},
-  { description: 'Calling clients', emoji: '📞', duration: 60_000, teams: ['investor relations', 'investment team']},
+  { description: 'Calling clients', emoji: '📞', duration: 60_000, teams: ['investor relations', 'investment team','senior management']},
   { description: 'Writing a report', emoji: '📊', duration: 60_000, teams: ['support', 'investment team', 'IT team']},
-  { description: 'Calling lawyers', emoji: '📞', duration: 60_000, teams: ['investmen team', 'support function']},
+  { description: 'Calling lawyers', emoji: '📞', duration: 60_000, teams: ['investmen team', 'support function','senior management']},
+  { description: 'Daydreaming about an IPO', emoji: '🤑', duration: 60_000, teams: ['senior management']}
 ];
 
 export const ENGINE_ACTION_DURATION = 30000;

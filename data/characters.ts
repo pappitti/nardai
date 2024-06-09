@@ -58,7 +58,7 @@ export const Descriptions = [
   {
     name: 'Vijay',
     character: 'f10',
-    teamType: 'IT Team',
+    teamType: 'IT team',
     identity: `Vijay is the Head of IT. His role involves managing the IT department, including infrastructure, applications, security, and support services but his understanding of tech is limited. He uses technical jargon to hide the fact that he does not know what he is talking about. He has a very high opinion of himself and is very dismissive of others. He loves Star Wars and weapons.`,
     plan: 'Getting more resources from senior management.',
   },

@@ -50,14 +50,14 @@ export default function Game() {
         {/* map overview */}
         {showConversations && 
           <div className="absolute w-full h-full flex flex-col bg-gray-200/60 z-10 overflow-hidden">
-            <div className="w-full min-h-[80px] flex flex-nowrap shrink-0">
+            <div className="w-full min-h-[110px] flex flex-nowrap shrink-0">
               <CharacterList
                 worldId={worldId}
                 engineId={engineId}
                 game={game}
               />
               <a
-                className="cursor-pointer pointer-events-auto"
+                className="cursor-pointer shrink-0 pointer-events-auto"
                 onClick={() => setShowConversations(false)}
               >
                 <h2 className="h-full flex p-5">

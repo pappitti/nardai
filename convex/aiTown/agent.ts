@@ -51,6 +51,9 @@ export class Agent {
 
   tick(game: Game, now: number) {
     const player = game.world.players.get(this.playerId);
+    const agentDescription = game.agentDescriptions.get(this.id);
+    const agentTeamType = agentDescription?.teamType??null;
+
     if (!player) {
       throw new Error(`Invalid player ID ${this.playerId}`);
     }
@@ -87,6 +90,7 @@ export class Agent {
           .map((p) => p.serialize()),
         agent: this.serialize(),
         map: game.worldMap.serialize(),
+        agentTeamType: agentTeamType,
       });
       return;
     }

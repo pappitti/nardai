@@ -100,6 +100,7 @@ export const agentDoSomething = internalAction({
     map: v.object(serializedWorldMap),
     otherFreePlayers: v.array(v.object(serializedPlayer)),
     operationId: v.string(),
+    agentTeamType: v.union(v.string(),v.null()),
   },
   handler: async (ctx, args) => {
     const { player, agent } = args;
@@ -128,7 +129,14 @@ export const agentDoSomething = internalAction({
         return;
       } else {
         // TODO: have LLM choose the activity & emoji
-        const activity = ACTIVITIES[Math.floor(Math.random() * ACTIVITIES.length)];
+        let relevantActivities
+        if (args.agentTeamType !== null){
+          relevantActivities = ACTIVITIES.filter((a)=>a.teams.includes(args.agentTeamType!));
+        } else {
+          relevantActivities = ACTIVITIES 
+        }
+        const activity = relevantActivities[Math.floor(Math.random() * ACTIVITIES.length)];
+         //const activity = ACTIVITIES[Math.floor(Math.random() * ACTIVITIES.length)];
         await sleep(Math.random() * 1000);
         await ctx.runMutation(api.aiTown.main.sendInput, {
           worldId: args.worldId,
