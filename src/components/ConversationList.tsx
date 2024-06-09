@@ -36,7 +36,7 @@ export default function ConversationList({
     refs.current = activeConversations.map((_, i) => refs.current[i] ?? createRef());
 
     return (
-        <div className={`flex max-w-full overflow-auto pt-4 gap-1`} style={{maxHeight:maxHeight+"px"}}>
+        <div className={`flex flex-nowrap justify-start max-w-full overflow-auto pt-4 gap-1`} style={{maxHeight:maxHeight+"px"}}>
           {activeConversations.map((c,index) =>
               <div 
                 className="flex flex-col items-center max-w-[350px] min-w-[250px] max-h-full overflow-auto" 

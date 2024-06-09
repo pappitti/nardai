@@ -5,10 +5,10 @@ export const LLM_CONFIG = {
    */
   ollama: true,
   url: 'http://127.0.0.1:11434',
-  chatModel: 'llama3:8b' as const,//hermes2llama38b, llama3:8b, adrienbrault/nous-hermes2theta-llama3-8b:q5_K_M
+  chatModel: 'adrienbrault/nous-hermes2theta-llama3-8b:q5_K_M' as const,//hermes2llama38b, llama3:8b, adrienbrault/nous-hermes2theta-llama3-8b:q5_K_M, llama3:instruct
   embeddingModel: 'mxbai-embed-large',
   embeddingDimension: 1024,
-  stopWords: ['<|eot_id|>','<|im_end|>'],//['<|eot_id|>','<|im_end|>']
+  stopWords: [],//['<|eot_id|>','<|im_end|>']
   // chatModel: 'llama3' as const, // Default from AiTown
   // embeddingModel: 'llama3',
   // embeddingDimension: 4096,
@@ -30,6 +30,47 @@ export const LLM_CONFIG = {
   embeddingDimension: 1536,
    */
 };
+
+const chatTemplates = {
+  'hermes2llama38b': chatML,
+  'llama3:8b': llama3,
+  'llama3:instruct': llama3,
+  'adrienbrault/nous-hermes2theta-llama3-8b:q5_K_M': chatML,
+};
+
+function chatML(messages:LLMMessage[]) {
+  let formattedMessages="";
+  const templateStopWords = ['<|im_end|>'];
+  for (const message of messages) {
+    if (message.role === 'user') {
+      formattedMessages=formattedMessages+`<|im_start|>user\n${message.content}<|im_end|>\n`
+    }
+    if (message.role === 'assistant') {
+      formattedMessages=formattedMessages+`<|im_start|>assistant\n${message.content}`
+    }
+    if (message.role === 'system') {
+      formattedMessages=formattedMessages+`<|im_start|>system\n${message.content}<|im_end|>\n`
+    }
+  } 
+  return {formattedMessages, templateStopWords};
+};
+
+function llama3(messages:LLMMessage[]) {
+  let formattedMessages="";
+  const templateStopWords = ['<|eot_id|>'];
+  for (const message of messages) {
+    if (message.role === 'user') {
+      formattedMessages=formattedMessages+`<|start_header_id|>user<|end_header_id|>\n${message.content}<|eot_id|>\n`
+    }
+    if (message.role === 'assistant') {
+      formattedMessages=formattedMessages+`<|start_header_id|>assistant<|end_header_id|>\n${message.content}`
+    }
+    if (message.role === 'system') {
+      formattedMessages=formattedMessages+`<|start_header_id|>system<|end_header_id|>\n${message.content}<|eot_id|>\n`
+    }
+  } 
+  return {formattedMessages, templateStopWords};
+}
 
 function apiUrl(path: string) {
   // OPENAI_API_BASE and OLLAMA_HOST are legacy
@@ -85,6 +126,12 @@ export async function chatCompletion(
     body.model ?? process.env.LLM_MODEL ?? process.env.OLLAMA_MODEL ?? LLM_CONFIG.chatModel;
   const stopWords = body.stop ? (typeof body.stop === 'string' ? [body.stop] : body.stop) : [];
   if (LLM_CONFIG.stopWords) stopWords.push(...LLM_CONFIG.stopWords);
+  if (body.model in chatTemplates) {
+    const { formattedMessages, templateStopWords} = chatTemplates[body.model as keyof typeof chatTemplates](body.messages);
+    body.messages = [{ content: formattedMessages, role: 'user' }];
+    stopWords.push(...templateStopWords);
+    body.raw = true; // override the template in OLLAMA (I can't be 100% sure it actually works when using the OpenAI API but output looks good so I keep it)
+  }
   console.log(body);
   const {
     result: content,
@@ -540,6 +587,11 @@ export interface CreateChatCompletionRequest {
    * or the conversation exceeded the max context length.
    */
   response_format?: { type: 'text' | 'json_object' };
+  /** 
+   * raw is used to override the OLLAMA template for chat completions. We defined our own templates in chatTemplates.
+  */
+  raw?: boolean;
+  format?: 'json' | 'text';
 }
 
 // Checks whether a suffix of s1 is a prefix of s2. For example,

@@ -10,11 +10,6 @@ import { NUM_MEMORIES_TO_SEARCH } from '../constants';
 
 const selfInternal = internal.agent.conversation;
 
-type PromptRoleTemplate = {
-  role: 'system' | 'user' | 'assistant';
-  content: string;
-}
-
 export async function startConversationMessage(
   ctx: ActionCtx,
   worldId: Id<'worlds'>,
@@ -57,8 +52,7 @@ export async function startConversationMessage(
     prompt.push(
       `Be sure to include some detail or question about a previous conversation in your greeting.`,
     );
-  }
-  prompt.push(`${player.name}:`);
+  };
 
   const { content } = await chatCompletion({
     messages: [
@@ -67,6 +61,9 @@ export async function startConversationMessage(
         role: 'user',
         content: prompt.join('\n'),
       },
+      { 
+        role: 'assistant', 
+        content: `${player.name}:` }
     ],
     max_tokens: 300,
     stream: true,
@@ -123,7 +120,7 @@ export async function continueConversationMessage(
       conversation.id as GameId<'conversations'>,
     )),
   ];
-  llmMessages.push({ role: 'user', content: `${player.name}:` });
+  llmMessages.push({ role: 'assistant', content: `${player.name}:` });
 
   const { content } = await chatCompletion({
     messages: llmMessages,
@@ -173,7 +170,7 @@ export async function leaveConversationMessage(
       conversation.id as GameId<'conversations'>,
     )),
   ];
-  llmMessages.push({ role: 'user', content: `${player.name}:` });
+  llmMessages.push({ role: 'assistant', content: `${player.name}:` });
 
   const { content } = await chatCompletion({
     messages: llmMessages,
@@ -186,14 +183,14 @@ export async function leaveConversationMessage(
 
 function systemPrompt(
   player: { name: string },
-  agent: { identity: string; plan: string; teamType:string } | null,) : PromptRoleTemplate{
+  agent: { identity: string; plan: string; teamType:string } | null,) : LLMMessage{
     if (!agent) {
       throw new Error('Agent not found');
     }
     return {
       role: 'system',
       content: `You work in an Asset Management firm called "Nard AI" where you are part of the ${agent.teamType}. Your name is ${player.name}. \n Here is a brief about you and your personality: ${agent.identity}.\n
-      As part of your day to day job, you have to interact with other members of the firm. You generally talk in a polished manner but you can adapt your language to the person you talk to (for example, you use a more familiar language with members of your team or with colleagues with a same level of seniority). As part of your duties, you make plans and you take actions but you also have an agenda : ${agent.plan}\n`
+      As part of your day to day job, you have to interact with other members of the firm. You speak English with them generally talk in a polished manner but you can adapt your language to the person you talk to (for example, you use a more familiar language with members of your team or with colleagues with a same level of seniority). As part of your duties, you make plans and you take actions but you also have an agenda : ${agent.plan}\n`
     };
 }
 
