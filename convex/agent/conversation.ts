@@ -10,6 +10,11 @@ import { NUM_MEMORIES_TO_SEARCH } from '../constants';
 
 const selfInternal = internal.agent.conversation;
 
+type PromptRoleTemplate = {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
 export async function startConversationMessage(
   ctx: ActionCtx,
   worldId: Id<'worlds'>,
@@ -41,8 +46,9 @@ export async function startConversationMessage(
   const memoryWithOtherPlayer = memories.find(
     (m) => m.data.type === 'conversation' && m.data.playerIds.includes(otherPlayerId),
   );
+
   const prompt = [
-    `You are ${player.name}, and you just started a conversation with ${otherPlayer.name}.`,
+    `You just started a conversation with ${otherPlayer.name}.`,
   ];
   prompt.push(...agentPrompts(otherPlayer, agent, otherAgent ?? null));
   prompt.push(...previousConversationPrompt(otherPlayer, lastConversation));
@@ -56,6 +62,7 @@ export async function startConversationMessage(
 
   const { content } = await chatCompletion({
     messages: [
+      systemPrompt(player, agent),
       {
         role: 'user',
         content: prompt.join('\n'),
@@ -92,7 +99,7 @@ export async function continueConversationMessage(
   );
   const memories = await memory.searchMemories(ctx, player.id as GameId<'players'>, embedding, 3);
   const prompt = [
-    `You are ${player.name}, and you're currently in a conversation with ${otherPlayer.name}.`,
+    `You are currently in a conversation with ${otherPlayer.name}.`,
     `The conversation started at ${started.toLocaleString()}. It's now ${now.toLocaleString()}.`,
   ];
   prompt.push(...agentPrompts(otherPlayer, agent, otherAgent ?? null));
@@ -103,6 +110,7 @@ export async function continueConversationMessage(
   );
 
   const llmMessages: LLMMessage[] = [
+    systemPrompt(player, agent),
     {
       role: 'user',
       content: prompt.join('\n'),
@@ -143,7 +151,7 @@ export async function leaveConversationMessage(
     },
   );
   const prompt = [
-    `You are ${player.name}, and you're currently in a conversation with ${otherPlayer.name}.`,
+    `You are currently in a conversation with ${otherPlayer.name}.`,
     `You've decided to leave the question and would like to politely tell them you're leaving the conversation.`,
   ];
   prompt.push(...agentPrompts(otherPlayer, agent, otherAgent ?? null));
@@ -152,6 +160,7 @@ export async function leaveConversationMessage(
     `How would you like to tell them that you're leaving? Your response should be brief and within 200 characters.`,
   ); 
   const llmMessages: LLMMessage[] = [
+    systemPrompt(player, agent),
     {
       role: 'user',
       content: prompt.join('\n'),
@@ -175,18 +184,32 @@ export async function leaveConversationMessage(
   return content;
 }
 
+function systemPrompt(
+  player: { name: string },
+  agent: { identity: string; plan: string; teamType:string } | null,) : PromptRoleTemplate{
+    if (!agent) {
+      throw new Error('Agent not found');
+    }
+    return {
+      role: 'system',
+      content: `You work in an Asset Management firm called "Nard AI" where you are part of the ${agent.teamType}. Your name is ${player.name}. \n Here is a brief about you and your personality: ${agent.identity}.\n
+      As part of you day to day job, you have to interact with other members of the firm. You generally talk in a polished manner but you can adapt your language to the person you talk to (for example, you use a more familiar language with members of your team or with colleagues with a same level of seniority). As part of your duties, you make plans and you take actions but you also have an agenda : ${agent.plan}\n`
+    };
+}
+
 function agentPrompts( // adding teams here
   otherPlayer: { name: string },
   agent: { identity: string; plan: string; teamType:string } | null,
   otherAgent: { identity: string; plan: string; teamType:string } | null,
 ): string[] {
   const prompt = [];
-  if (agent) {
-    prompt.push(`About you: ${agent.identity}. You are part of ${agent.teamType}`);
-    prompt.push(`Your goals for the conversation: ${agent.plan}`);
-  }
   if (otherAgent) {
-    prompt.push(`About ${otherPlayer.name}: ${otherAgent.identity}. They are part of ${otherAgent.teamType}`);
+    prompt.push(`${otherPlayer.name} is part of the ${otherAgent.teamType}. About ${otherPlayer.name}: ${otherAgent.identity}.`);
+  }
+  if (agent) {
+    // prompt.push(`About you: ${agent.identity}. You are part of ${agent.teamType}`);
+    // TODO : add specific plan for the task
+    prompt.push(`Your goals for this conversation: ${agent.plan}`);
   }
   return prompt;
 }

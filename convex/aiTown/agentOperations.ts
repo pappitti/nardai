@@ -135,22 +135,22 @@ export const agentDoSomething = internalAction({
         } else {
           relevantActivities = ACTIVITIES 
         }
-        const activity = relevantActivities[Math.floor(Math.random() * ACTIVITIES.length)];
+        const activity = relevantActivities[Math.floor(Math.random() * relevantActivities.length)];
          //const activity = ACTIVITIES[Math.floor(Math.random() * ACTIVITIES.length)];
         await sleep(Math.random() * 1000);
         await ctx.runMutation(api.aiTown.main.sendInput, {
-          worldId: args.worldId,
-          name: 'finishDoSomething',
-          args: {
-            operationId: args.operationId,
-            agentId: agent.id,
-            activity: {
-              description: activity.description,
-              emoji: activity.emoji,
-              until: Date.now() + activity.duration,
+            worldId: args.worldId,
+            name: 'finishDoSomething',
+            args: {
+              operationId: args.operationId,
+              agentId: agent.id,
+              activity: {
+                description: activity.description,
+                emoji: activity.emoji,
+                until: Date.now() + activity.duration,
+              },
             },
-          },
-        });
+          });
         return;
       }
     }

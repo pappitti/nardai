@@ -50,3 +50,6 @@ convex_local_backend.sqlite3
 convex_local_backend*
 /convex_local_backend.sqlite3
 /convex_local_backend
+
+# dev notes and questions
+NOTES_AND_QUESTIONS.md

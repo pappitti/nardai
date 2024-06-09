@@ -8,7 +8,7 @@ This project started as a satire so its primary goal was to have fun while layin
 
 Otherwise, I keep below the content of the original README detailing how to install and run the code.  
 
-# AI Town READ ME
+# AI Town README
 
 [AI Town Live Demo](https://www.convex.dev/ai-town)
 
