@@ -366,5 +366,7 @@ export const queryPromptData = internalQuery({
 function stopWords(otherPlayer: string, player: string) {
   // These are the words we ask the LLM to stop on. OpenAI only supports 4.
   const variants = [`${otherPlayer} to ${player}`];
-  return variants.flatMap((stop) => [stop + ':', stop.toLowerCase() + ':']);
+  const stops= [...variants.flatMap((stop) => [stop + ':', stop.toLowerCase() + ':'])] 
+  //, otherPlayer + ':', otherPlayer.toLowerCase() + ':' (tested if adding these could improve other models but it breaks LLama3)
+  return stops;
 }

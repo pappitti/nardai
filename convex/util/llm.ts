@@ -5,10 +5,11 @@ export const LLM_CONFIG = {
    */
   ollama: true,
   url: 'http://127.0.0.1:11434',
-  chatModel: 'adrienbrault/nous-hermes2theta-llama3-8b:q5_K_M' as const,//hermes2llama38b, llama3:8b, adrienbrault/nous-hermes2theta-llama3-8b:q5_K_M, llama3:instruct
+  chatModel: 'adrienbrault/nous-hermes2theta-llama3-8b:q5_K_M' as const,
   embeddingModel: 'mxbai-embed-large',
   embeddingDimension: 1024,
   stopWords: [],//['<|eot_id|>','<|im_end|>']
+  //hermes2llama38b, llama3:8b, adrienbrault/nous-hermes2theta-llama3-8b:q5_K_M, llama3:instruct, mistral:v0.3
   // chatModel: 'llama3' as const, // Default from AiTown
   // embeddingModel: 'llama3',
   // embeddingDimension: 4096,
@@ -36,6 +37,7 @@ const chatTemplates = {
   'llama3:8b': llama3,
   'llama3:instruct': llama3,
   'adrienbrault/nous-hermes2theta-llama3-8b:q5_K_M': chatML,
+  'mistral:v0.3': mistral_v03,
 };
 
 function chatML(messages:LLMMessage[]) {
@@ -67,6 +69,21 @@ function llama3(messages:LLMMessage[]) {
     }
     if (message.role === 'system') {
       formattedMessages=formattedMessages+`<|start_header_id|>system<|end_header_id|>\n${message.content}<|eot_id|>\n`
+    }
+  } 
+  return {formattedMessages, templateStopWords};
+}
+
+function mistral_v03(messages:LLMMessage[]) {
+
+  let formattedMessages="";
+  const templateStopWords = ["[INST]","[/INST]"];
+  for (const message of messages) {
+    if (message.role === 'user' || message.role === 'system') {
+      formattedMessages=formattedMessages+`<s>[INST] \n${message.content} [/INST]\n`
+    }
+    if (message.role === 'assistant') {
+      formattedMessages=formattedMessages+message.content+`</s>`
     }
   } 
   return {formattedMessages, templateStopWords};
