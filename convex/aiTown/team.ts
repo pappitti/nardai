@@ -2,32 +2,11 @@ import { ObjectType, v } from 'convex/values';
 import { GameId, parseGameId, teamId } from './ids';
 import { Point, point} from '../util/types';
 import { inputHandler } from './inputHandler';
-import { Teams, TeamName } from '../../data/teams';
-import { serializedPlayer } from './player';
-import { Game } from './game';
-import {
-  ACTION_TIMEOUT,
-  AWKWARD_CONVERSATION_TIMEOUT,
-  CONVERSATION_COOLDOWN,
-  CONVERSATION_DISTANCE,
-  INVITE_ACCEPT_PROBABILITY,
-  INVITE_TIMEOUT,
-  MAX_CONVERSATION_DURATION,
-  MAX_CONVERSATION_MESSAGES,
-  MESSAGE_COOLDOWN,
-  MIDPOINT_THRESHOLD,
-  PLAYER_CONVERSATION_COOLDOWN,
-} from '../constants';
-import { FunctionArgs } from 'convex/server';
-import { ActionCtx, DatabaseReader, internalMutation, internalQuery } from '../_generated/server';
-import { distance } from '../util/geometry';
+import { Teams } from '../../data/teams';
+import { internalQuery } from '../_generated/server';
 import { internal } from '../_generated/api';
-import { movePlayer } from './movement';
-import { insertInput } from './insertInput';
-import { AgentDescription } from './agentDescription';
 
-// method findMembers
-//const selfInternal = internal.aiTown.team
+const selfInternal = internal.aiTown.team // not used at this stage (matbe later to use the findmembers function)
 
 export class Team {
     id: GameId<'teams'>;

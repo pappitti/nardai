@@ -8,6 +8,8 @@ import { GameId, agentId, conversationId, playerId } from '../aiTown/ids';
 import { SerializedPlayer } from '../aiTown/player';
 import { memoryFields } from './schema';
 
+// WIP
+
 // player
 // worldId : Id
 // status : "current" | "archived"

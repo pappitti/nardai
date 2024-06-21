@@ -3,6 +3,8 @@ import { playerId, teamId } from '../aiTown/ids';
 import { defineTable } from 'convex/server';
 import { LLM_CONFIG } from '../util/llm';
 
+// WIP
+
 // planID
 // stepID
 // description : string

@@ -183,25 +183,24 @@ export async function leaveConversationMessage(
 
 function systemPrompt(
   player: { name: string },
-  agent: { identity: string; plan: string; teamType:string } | null,) : LLMMessage{
+  agent: { identity: string; plan: string; teamType:string ; teamDescription: string } | null,) : LLMMessage{
     if (!agent) {
       throw new Error('Agent not found');
     }
     return {
       role: 'system',
-      content: `You work in an Asset Management firm called "Nard AI" where you are part of the ${agent.teamType}. Your name is ${player.name}. \n Here is a brief about you and your personality: ${agent.identity}.\n
-      As part of your day to day job, you have to interact with other members of the firm. You speak English with them and generally talk in a polished manner but you can adapt your language to the person you talk to (for example, you use a more familiar language with members of your team or with colleagues with a same level of seniority). As part of your duties, you make plans and you take actions but you also have an agenda : ${agent.plan}\n`
+      content: `You work in an Asset Management firm called "Nard AI" where you are part of the ${agent.teamType}. Your name is ${player.name}.\n Here is a brief about what your team's duties and objectives: ${agent.teamDescription}\n Here is a brief about you and your personality: ${agent.identity}.\n As part of your day to day job, you have to interact with other members of the firm. You speak English with them and generally talk in a polished manner but you can adapt your language to the person you talk to (for example, you use a more familiar language with members of your team or with colleagues with a same level of seniority). As part of your duties the ${agent.teamType}, you make plans and you take actions but you also have your own agenda : ${agent.plan}\n`
     };
 }
 
 function agentPrompts( // adding teams here
   otherPlayer: { name: string },
-  agent: { identity: string; plan: string; teamType:string } | null,
-  otherAgent: { identity: string; plan: string; teamType:string } | null,
+  agent: { identity: string; plan: string; teamType:string; teamDescription: string } | null,
+  otherAgent: { identity: string; plan: string; teamType:string; teamDescription: string  } | null,
 ): string[] {
   const prompt = [];
   if (otherAgent) {
-    prompt.push(`${otherPlayer.name} is part of the ${otherAgent.teamType}. About ${otherPlayer.name}: ${otherAgent.identity}.`);
+    prompt.push(`${otherPlayer.name} is part of the ${otherAgent.teamType}.\n About ${otherPlayer.name}'s team: ${otherAgent.teamDescription}\n About ${otherPlayer.name}: ${otherAgent.identity}.`);
   }
   if (agent) {
     // prompt.push(`About you: ${agent.identity}. You are part of ${agent.teamType}`);
@@ -308,8 +307,14 @@ export const queryPromptData = internalQuery({
     if (!agentDescription) {
       throw new Error(`Agent description for ${agent.id} not found`);
     }
+    const agentTeam = agentDescription.teamType;
+    const agentTeamDescription = world.teams.find((t) => t.name === agentTeam);
+    if (!agentTeamDescription) {
+      throw new Error(`Team ${agentTeam} not found`);
+    }
     const otherAgent = world.agents.find((a) => a.playerId === args.otherPlayerId);
     let otherAgentDescription;
+    let otherAgentTeamDescription;
     if (otherAgent) {
       otherAgentDescription = await ctx.db
         .query('agentDescriptions')
@@ -317,6 +322,11 @@ export const queryPromptData = internalQuery({
         .first();
       if (!otherAgentDescription) {
         throw new Error(`Agent description for ${otherAgent.id} not found`);
+      }
+      const otherAgentTeam = otherAgentDescription.teamType;
+      otherAgentTeamDescription = world.teams.find((t) => t.name === otherAgentTeam);
+      if (!otherAgentTeamDescription) {
+        throw new Error(`Team ${otherAgentTeam} not found`);
       }
     }
     const lastTogether = await ctx.db
@@ -351,13 +361,13 @@ export const queryPromptData = internalQuery({
         identity: agentDescription.identity, 
         plan: agentDescription.plan,  
         teamType: agentDescription.teamType,
-        // TODO : add teamDescription here
+        teamDescription: agentTeamDescription.description,
         ...agent },
       otherAgent: otherAgent && {
         identity: otherAgentDescription!.identity,
         plan: otherAgentDescription!.plan,
         teamType: otherAgentDescription!.teamType,
-        // TODO : add teamDescription here
+        teamDescription: otherAgentTeamDescription!.description,
         ...otherAgent,
       },
       lastConversation,

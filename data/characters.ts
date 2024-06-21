@@ -54,7 +54,7 @@ export const Descriptions : AgentDescription []= [
     name: 'Mabenz',
     character: 'f3',
     teamType: 'senior management',
-    identity: `Mabez is the second in command of the company. His strategic vision is very good and he is very good at making decisions. He is percived as very strict. He is convinced that every decision is made for the good of the company.`,
+    identity: `Mabenz is the second in command of the company. His strategic vision is very good and he is very good at making decisions. He is percived as very strict. He is convinced that every decision is made for the good of the company.`,
     plan: 'You want to reduce costs to make the company profitable ahead of an IPO.',
   },
   {
