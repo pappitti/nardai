@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import PixiGame from './PixiGame.tsx';
 import closeImg from '../../assets/close.svg';
 import { useElementSize } from 'usehooks-ts';
@@ -7,6 +7,8 @@ import { ConvexProvider, useConvex, useQuery } from 'convex/react';
 import PlayerDetails from './PlayerDetails.tsx';
 import CharacterList from './CharacterList.tsx';
 import ConversationList from './ConversationList.tsx';
+import SearchComponent from './searchBar.tsx';
+import KeywordTracker from './KeywordTracker.tsx';
 import { api } from '../../convex/_generated/api';
 import { useWorldHeartbeat } from '../hooks/useWorldHeartbeat.ts';
 import { useHistoricalTime } from '../hooks/useHistoricalTime.ts';
@@ -23,6 +25,8 @@ export default function Game() {
     id: GameId<'players'>;
   }>();
   const [showConversations, setShowConversations] = useState<boolean>(false);
+  const [searchedString, setSearchedString] = useState<string|undefined>(undefined);
+
   const [gameWrapperRef, { width, height }] = useElementSize();
   const [gameWindowRef, {width :gameWindowWidth, height : gameWindowheight}] = useElementSize();
 
@@ -40,6 +44,10 @@ export default function Game() {
 
   const scrollViewRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => {
+    console.log('searchedString', searchedString);
+  }, [searchedString]);
+
   if (!worldId || !engineId || !game) {
     return null;
   }
@@ -56,6 +64,7 @@ export default function Game() {
                 engineId={engineId}
                 game={game}
               />
+              <SearchComponent setSearchedString={setSearchedString}/>
               <a
                 className="cursor-pointer shrink-0 pointer-events-auto"
                 onClick={() => setShowConversations(false)}
@@ -66,14 +75,27 @@ export default function Game() {
               </a>
             </div>
             <div className="h-[6px] bg-red-600 mx-[40px] shrink-0"></div>
-            <div className="w-full grow">
-              <ConversationList
-                worldId={worldId}
-                engineId={engineId}
-                game={game}
-                height={gameWindowheight}
-              />
-            </div>
+            {searchedString &&
+              <div className="w-full grow">
+                {/* TODO for now, same as ConversationList*/}
+                <KeywordTracker
+                  worldId={worldId}
+                  engineId={engineId}
+                  game={game}
+                  height={gameWindowheight}
+                /> 
+              </div>
+          }
+            {!searchedString &&
+              <div className="w-full grow">
+                <ConversationList
+                  worldId={worldId}
+                  engineId={engineId}
+                  game={game}
+                  height={gameWindowheight}
+                />
+              </div>
+          }
           </div>
           }
         {/* Game area */}
