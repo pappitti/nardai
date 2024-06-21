@@ -351,11 +351,13 @@ export const queryPromptData = internalQuery({
         identity: agentDescription.identity, 
         plan: agentDescription.plan,  
         teamType: agentDescription.teamType,
+        // TODO : add teamDescription here
         ...agent },
       otherAgent: otherAgent && {
         identity: otherAgentDescription!.identity,
         plan: otherAgentDescription!.plan,
         teamType: otherAgentDescription!.teamType,
+        // TODO : add teamDescription here
         ...otherAgent,
       },
       lastConversation,

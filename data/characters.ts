@@ -1,8 +1,17 @@
 import { data as f1SpritesheetData } from './spritesheets/f1';
 import { data as f5SpritesheetData } from './spritesheets/f5';
 import { data as f8SpritesheetData } from './spritesheets/f8';
+import { TeamName } from './teams';
 
-export const Descriptions = [
+type AgentDescription = {
+  name: string;
+  character: string;
+  teamType: TeamName; // making sure the teamType is one of the TeamNames
+  identity: string;
+  plan: string;
+};
+
+export const Descriptions : AgentDescription []= [
   {
     name: 'Malbec',
     character: 'f9',

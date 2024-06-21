@@ -2,6 +2,7 @@ import { v } from 'convex/values';
 import { internal } from './_generated/api';
 import { DatabaseReader, MutationCtx, mutation } from './_generated/server';
 import { Descriptions } from '../data/characters';
+import { Teams, TeamName } from '../data/teams';
 import * as map from '../data/converted-map'; //'../data/gentle';
 import { insertInput } from './aiTown/insertInput';
 import { Id } from './_generated/dataModel';
@@ -12,6 +13,7 @@ import { assertApiKey } from './util/llm';
 const init = mutation({
   args: {
     numAgents: v.optional(v.number()),
+    numTeams: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     assertApiKey();
@@ -32,6 +34,19 @@ const init = mutation({
       for (let i = 0; i < toCreate; i++) {
         await insertInput(ctx, worldStatus.worldId, 'createAgent', {
           descriptionIndex: i % Descriptions.length,
+        });
+      }
+    }
+    const addNewteams = await shouldCreateTeams(
+      ctx.db,
+      worldStatus.worldId,
+      worldStatus.engineId,
+    );
+    if (addNewteams) {
+      const toCreate = args.numTeams !== undefined ? args.numTeams : Teams.length;
+      for (let i = 0; i < toCreate; i++) {
+        await insertInput(ctx, worldStatus.worldId, 'createTeam', {
+          teamIndex: i % Teams.length,
         });
       }
     }
@@ -58,6 +73,7 @@ async function getOrCreateDefaultWorld(ctx: MutationCtx) {
     agents: [],
     conversations: [],
     players: [],
+    teams: [],
   });
   const worldStatusId = await ctx.db.insert('worldStatus', {
     engineId: engineId,
@@ -104,6 +120,31 @@ async function shouldCreateAgents(
     .withIndex('byInputNumber', (q) => q.eq('engineId', engineId))
     .order('asc')
     .filter((q) => q.eq(q.field('name'), 'createAgent'))
+    .filter((q) => q.eq(q.field('returnValue'), undefined))
+    .collect();
+  if (unactionedJoinInputs.length > 0) {
+    return false;
+  }
+  return true;
+}
+
+async function shouldCreateTeams(
+  db: DatabaseReader,
+  worldId: Id<'worlds'>,
+  engineId: Id<'engines'>,
+) {
+  const world = await db.get(worldId);
+  if (!world) {
+    throw new Error(`Invalid world ID: ${worldId}`);
+  }
+  if (world.teams.length > 0) {
+    return false;
+  }
+  const unactionedJoinInputs = await db
+    .query('inputs')
+    .withIndex('byInputNumber', (q) => q.eq('engineId', engineId))
+    .order('asc')
+    .filter((q) => q.eq(q.field('name'), 'createTeam'))
     .filter((q) => q.eq(q.field('returnValue'), undefined))
     .collect();
   if (unactionedJoinInputs.length > 0) {
