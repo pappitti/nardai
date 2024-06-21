@@ -83,6 +83,7 @@ export default function Game() {
                   engineId={engineId}
                   game={game}
                   height={gameWindowheight}
+                  keyword={searchedString}
                 /> 
               </div>
           }

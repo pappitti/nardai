@@ -19,7 +19,10 @@ export default defineSchema({
     worldId: v.optional(v.id('worlds')),
   })
     .index('conversationId', ['worldId', 'conversationId'])
-    .index('messageUuid', ['conversationId', 'messageUuid']),
+    .index('messageUuid', ['conversationId', 'messageUuid'])
+    .searchIndex('keywordSearch', {
+      searchField: "text",
+    }),
 
   ...agentTables,
   ...aiTownTables,
