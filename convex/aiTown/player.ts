@@ -15,6 +15,7 @@ import { stopPlayer, findRoute, blocked, movePlayer } from './movement';
 import { inputHandler } from './inputHandler';
 import { characters } from '../../data/characters';
 import { PlayerDescription } from './playerDescription';
+import { query } from '../_generated/server';
 
 const pathfinding = v.object({
   destination: point,
@@ -308,3 +309,27 @@ export const playerInputs = {
     },
   }),
 };
+
+export const listArchivedPlayers = query({
+  args: {
+    worldId: v.id('worlds'),
+  },
+  handler: async (ctx, args) => {
+    const archivedPlayers = await ctx.db
+      .query('archivedPlayers')
+      .filter((q) => q.eq(q.field('worldId'),args.worldId))
+      .collect();
+    // const out = [];
+    // for (const message of messages) {
+    //   const playerDescription = await ctx.db
+    //     .query('playerDescriptions')
+    //     .withIndex('worldId', (q) => q.eq('worldId', args.worldId).eq('playerId', message.author))
+    //     .first();
+    //   if (!playerDescription) {
+    //     throw new Error(`Invalid author ID: ${message.author}`);
+    //   }
+    //   out.push({ ...message, authorName: playerDescription.name });
+    // }
+    return archivedPlayers;
+  },
+});

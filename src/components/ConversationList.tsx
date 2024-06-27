@@ -1,7 +1,6 @@
 import { useRef, createRef } from 'react';
 import { Id } from '../../convex/_generated/dataModel';
 import { GameId } from '../../convex/aiTown/ids';
-import { ConversationMembership } from '../../convex/aiTown/conversationMembership';
 import { ServerGame } from '../hooks/serverGame.ts';
 import {Messages} from './Messages.tsx';
 

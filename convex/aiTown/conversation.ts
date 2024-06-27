@@ -3,7 +3,6 @@ import { GameId, parseGameId } from './ids';
 import { conversationId, playerId } from './ids';
 import { Player } from './player';
 import { inputHandler } from './inputHandler';
-
 import { TYPING_TIMEOUT, CONVERSATION_DISTANCE } from '../constants';
 import { distance, normalize, vector } from '../util/geometry';
 import { Point } from '../util/types';
@@ -11,6 +10,7 @@ import { Game } from './game';
 import { stopPlayer, blocked, movePlayer } from './movement';
 import { ConversationMembership, serializedConversationMembership } from './conversationMembership';
 import { parseMap, serializeMap } from '../util/object';
+import { query } from '../_generated/server';
 
 export class Conversation {
   id: GameId<'conversations'>;
@@ -393,3 +393,27 @@ export const conversationInputs = {
     },
   }),
 };
+
+export const listArchivedConversations = query({
+  args: {
+    worldId: v.id('worlds'),
+  },
+  handler: async (ctx, args) => {
+    const conversations = await ctx.db
+      .query('archivedConversations')
+      .filter((q) => q.eq(q.field('worldId'),args.worldId))
+      .collect();
+    // const out = [];
+    // for (const message of messages) {
+    //   const playerDescription = await ctx.db
+    //     .query('playerDescriptions')
+    //     .withIndex('worldId', (q) => q.eq('worldId', args.worldId).eq('playerId', message.author))
+    //     .first();
+    //   if (!playerDescription) {
+    //     throw new Error(`Invalid author ID: ${message.author}`);
+    //   }
+    //   out.push({ ...message, authorName: playerDescription.name });
+    // }
+    return conversations;
+  },
+});

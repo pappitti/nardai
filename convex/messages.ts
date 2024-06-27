@@ -62,17 +62,17 @@ export const findKeyword = query({
       .query('messages')
       .withSearchIndex('keywordSearch', (q) => q.search("text",args.text))
       .collect();
-      const out = [];
-      for (const message of messages) {
-        const playerDescription = await ctx.db
-          .query('playerDescriptions')
-          .withIndex('worldId', (q) => q.eq('worldId', args.worldId).eq('playerId', message.author))
-          .first();
-        if (!playerDescription) {
-          throw new Error(`Invalid author ID: ${message.author}`);
-        }
-        out.push({ ...message, authorName: playerDescription.name });
-      }
-      return out;
+      // const out = [];
+      // for (const message of messages) {
+      //   const playerDescription = await ctx.db
+      //     .query('playerDescriptions')
+      //     .withIndex('worldId', (q) => q.eq('worldId', args.worldId).eq('playerId', message.author))
+      //     .first();
+      //   if (!playerDescription) {
+      //     throw new Error(`Invalid author ID: ${message.author}`);
+      //   }
+      //   out.push({ ...message, authorName: playerDescription.name });
+      // }
+      return messages;
     },
   });
