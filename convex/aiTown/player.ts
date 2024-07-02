@@ -191,8 +191,8 @@ export class Player {
     let position;
     for (let attempt = 0; attempt < 10; attempt++) {
       const candidate = {
-        x: Math.floor(Math.random() * game.worldMap.width),
-        y: Math.floor(Math.random() * game.worldMap.height),
+        x: 1 + Math.floor(Math.random() * (game.worldMap.width - 2)),
+        y: 1 + Math.floor(Math.random() * (game.worldMap.width - 2)),
       };
       if (blocked(game, now, candidate)) {
         continue;
@@ -319,17 +319,6 @@ export const listArchivedPlayers = query({
       .query('archivedPlayers')
       .filter((q) => q.eq(q.field('worldId'),args.worldId))
       .collect();
-    // const out = [];
-    // for (const message of messages) {
-    //   const playerDescription = await ctx.db
-    //     .query('playerDescriptions')
-    //     .withIndex('worldId', (q) => q.eq('worldId', args.worldId).eq('playerId', message.author))
-    //     .first();
-    //   if (!playerDescription) {
-    //     throw new Error(`Invalid author ID: ${message.author}`);
-    //   }
-    //   out.push({ ...message, authorName: playerDescription.name });
-    // }
     return archivedPlayers;
   },
 });

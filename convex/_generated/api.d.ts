@@ -18,7 +18,7 @@ import type * as agent_conversation from "../agent/conversation.js";
 import type * as agent_embeddingsCache from "../agent/embeddingsCache.js";
 import type * as agent_memory from "../agent/memory.js";
 import type * as agent_plan from "../agent/plan.js";
-import type * as agent_planStep from "../agent/planStep.js";
+import type * as agent_planStep from "../agent/task.js";
 import type * as aiTown_agent from "../aiTown/agent.js";
 import type * as aiTown_agentDescription from "../aiTown/agentDescription.js";
 import type * as aiTown_agentInputs from "../aiTown/agentInputs.js";

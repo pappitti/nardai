@@ -1,3 +1,5 @@
+import { TeamName } from "../data/teams";
+
 export const ACTION_TIMEOUT = 120_000; // more time for local dev
 // export const ACTION_TIMEOUT = 60_000;// normally fine
 
@@ -27,8 +29,11 @@ export const ACTIVITY_COOLDOWN = 10_000;
 // Don't talk to a player within 60s of talking to them.
 export const PLAYER_CONVERSATION_COOLDOWN = 60000;
 
-// Invite 80% of invites that come from other agents.
+// Accept 80% of invites that come from other agents.
 export const INVITE_ACCEPT_PROBABILITY = 0.8;
+
+// Probability that agent decides to reflect/work it plans.
+export const AGENT_MOTIVATION = 0.5;
 
 // Wait for 1m for invites to be accepted.
 export const INVITE_TIMEOUT = 60000;
@@ -64,16 +69,66 @@ export const DELETE_BATCH_SIZE = 64;
 
 export const HUMAN_IDLE_TOO_LONG = 5 * 60 * 1000;
 
-export const ACTIVITIES = [
-  { description: 'Writing a memo', emoji: '📝', duration: 60_000, teams: ['investment team']},
-  { description: 'Doing due diligence', emoji: '📚', duration: 60_000, teams: ['investment team']},
-  { description: 'Daydreaming about a promotion', emoji: '🤔', duration: 60_000 , teams: ['investment team', 'support function', 'IT team']},
-  { description: 'Writing specs for IT project', emoji: '🦃', duration: 60_000, teams: ['support function', 'investment team'] },
-  { description: 'Writing a support ticket', emoji: '🖥️', duration: 60_000, teams: ['IT team']},
-  { description: 'Calling clients', emoji: '📞', duration: 60_000, teams: ['investor relations', 'investment team','senior management']},
-  { description: 'Writing a report', emoji: '📊', duration: 60_000, teams: ['support', 'investment team', 'IT team']},
-  { description: 'Calling lawyers', emoji: '📞', duration: 60_000, teams: ['investmen team', 'support function','senior management']},
-  { description: 'Daydreaming about an IPO', emoji: '🤑', duration: 60_000, teams: ['senior management']}
+type ActivityInput = {
+  description: string;
+  emoji: string;
+  duration: number;
+  teams: TeamName[];
+};
+
+export const ACTIVITIES : ActivityInput[] = [
+  { 
+    description: 'Writing a memo', 
+    emoji: '📝', 
+    duration: 60_000, 
+    teams: ['investment team']
+  },
+  { 
+    description: 'Doing due diligence', 
+    emoji: '📚', 
+    duration: 60_000, 
+    teams: ['investment team']
+  },
+  { 
+    description: 'Daydreaming about a promotion', 
+    emoji: '🤔', duration: 60_000 , 
+    teams: ['investment team', 'support function', 'IT team']
+  },
+  { 
+    description: 'Writing specs for IT project', 
+    emoji: '🦃', duration: 60_000, 
+    teams: ['support function', 'investment team'] 
+  },
+  { 
+    description: 'Writing a support ticket', 
+    emoji: '🖥️', 
+    duration: 60_000, 
+    teams: ['IT team']
+  },
+  { 
+    description: 'Calling clients', 
+    emoji: '📞', 
+    duration: 60_000, 
+    teams: ['investor relations', 'investment team','senior management']
+  },
+  { 
+    description: 'Writing a report', 
+    emoji: '📊', 
+    duration: 60_000, 
+    teams: ['support', 'investment team', 'IT team']
+  },
+  { 
+    description: 'Calling lawyers', 
+    emoji: '📞', 
+    duration: 60_000, 
+    teams: ['investmen team', 'support function','senior management']
+  },
+  { 
+    description: 'Daydreaming about an IPO', 
+    emoji: '🤑', 
+    duration: 60_000, 
+    teams: ['senior management']
+  }
 ];
 
 export const ENGINE_ACTION_DURATION = 30000;

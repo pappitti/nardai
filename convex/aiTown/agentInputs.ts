@@ -1,5 +1,5 @@
 import { v } from 'convex/values';
-import { agentId, conversationId, parseGameId } from './ids';
+import { agentId, conversationId, parseGameId, planId } from './ids';
 import { Player, activity } from './player';
 import { Conversation, conversationInputs } from './conversation';
 import { movePlayer } from './movement';
@@ -8,6 +8,7 @@ import { point } from '../util/types';
 import { Descriptions } from '../../data/characters';
 import { AgentDescription } from './agentDescription';
 import { Agent } from './agent';
+import { Plan, serializedPlan } from '../agent/plan';
 
 export const agentInputs = {
   finishRememberConversation: inputHandler({
@@ -71,6 +72,33 @@ export const agentInputs = {
       if (args.activity) {
         player.activity = args.activity;
       }
+      return null;
+    },
+  }),
+  finishPlan: inputHandler({
+    args: {
+      operationId: v.string(),
+      agentId: v.id('agents'),
+      plan: v.object(serializedPlan),
+    },
+    handler: (game, now, args) => {
+      const agentId = parseGameId('agents', args.agentId);
+      const agent = game.world.agents.get(agentId);
+      if (!agent) {
+        throw new Error(`Couldn't find agent: ${agentId}`);
+      }
+      if (
+        !agent.inProgressOperation ||
+        agent.inProgressOperation.operationId !== args.operationId
+      ) {
+        console.debug(`Agent ${agentId} didn't have ${args.operationId} in progress`);
+        return null;
+      }
+      delete agent.inProgressOperation;
+      if (!args.plan.id) {
+         args.plan.id = game.allocId('plans');
+      }
+      agent.plan = new Plan(args.plan);
       return null;
     },
   }),

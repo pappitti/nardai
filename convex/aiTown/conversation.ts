@@ -403,17 +403,7 @@ export const listArchivedConversations = query({
       .query('archivedConversations')
       .filter((q) => q.eq(q.field('worldId'),args.worldId))
       .collect();
-    // const out = [];
-    // for (const message of messages) {
-    //   const playerDescription = await ctx.db
-    //     .query('playerDescriptions')
-    //     .withIndex('worldId', (q) => q.eq('worldId', args.worldId).eq('playerId', message.author))
-    //     .first();
-    //   if (!playerDescription) {
-    //     throw new Error(`Invalid author ID: ${message.author}`);
-    //   }
-    //   out.push({ ...message, authorName: playerDescription.name });
-    // }
+      
     return conversations;
   },
 });

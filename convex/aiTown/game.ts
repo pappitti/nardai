@@ -253,12 +253,13 @@ export class Game extends AbstractGame {
       throw new Error(`No world found with id ${worldId}`);
     }
     const newWorld = diff.world;
-    // Archive newly deleted players, conversations, and agents.
+    // Archive newly deleted players
     for (const player of existingWorld.players) {
       if (!newWorld.players.some((p) => p.id === player.id)) {
         await ctx.db.insert('archivedPlayers', { worldId, ...player });
       }
     }
+    // Archive newly deleted conversations
     for (const conversation of existingWorld.conversations) {
       if (!newWorld.conversations.some((c) => c.id === conversation.id)) {
         const participants = conversation.participants.map((p) => p.playerId);
@@ -291,10 +292,27 @@ export class Game extends AbstractGame {
         }
       }
     }
-    for (const conversation of existingWorld.agents) {
-      if (!newWorld.agents.some((a) => a.id === conversation.id)) {
-        await ctx.db.insert('archivedAgents', { worldId, ...conversation });
+    // Archive newly deleted agents.
+    for (const agent of existingWorld.agents) {
+      if (!newWorld.agents.some((a) => a.id === agent.id)) {
+        await ctx.db.insert('archivedAgents', { worldId, ...agent });
       }
+      // If agent still exists archive newly deleted plans
+      else {
+        const newWorldAgent = newWorld.agents.find((a) => a.id === agent.id);
+        if (agent.plan && newWorldAgent && newWorldAgent.plan?.id !== agent.plan.id) {
+          const archivedPlan = { 
+            worldId, 
+            id: agent.plan.id,
+            agent: agent.id,
+            created: agent.plan.created
+          };
+          await ctx.db.insert('archivedPlans', archivedPlan );
+          for (const step of agent.plan.tasks) {
+            await ctx.db.insert('archivedTasks', { worldId, ...step });
+          }
+        }
+      }  
     }
     // Update the world state.
     await ctx.db.replace(worldId, newWorld);

@@ -3,6 +3,7 @@ import { Id } from '../_generated/dataModel';
 import { ActionCtx, internalQuery } from '../_generated/server';
 import { LLMMessage, chatCompletion } from '../util/llm';
 import * as memory from './memory';
+import { SerializedPlan } from './plan';
 import { api, internal } from '../_generated/api';
 import * as embeddingsCache from './embeddingsCache';
 import { GameId, conversationId, playerId } from '../aiTown/ids';
@@ -181,32 +182,68 @@ export async function leaveConversationMessage(
   return content;
 }
 
-function systemPrompt(
+export function systemPrompt(
   player: { name: string },
-  agent: { identity: string; plan: string; teamType:string ; teamDescription: string } | null,) : LLMMessage{
+  agent: { identity: string; agenda: string; teamType:string ; teamDescription: string } | null,
+) : LLMMessage{
     if (!agent) {
       throw new Error('Agent not found');
     }
     return {
       role: 'system',
-      content: `You work in an Asset Management firm called "Nard AI" where you are part of the ${agent.teamType}. Your name is ${player.name}.\n Here is a brief about what your team's duties and objectives: ${agent.teamDescription}\n Here is a brief about you and your personality: ${agent.identity}.\n As part of your day to day job, you have to interact with other members of the firm. You speak English with them and generally talk in a polished manner but you can adapt your language to the person you talk to (for example, you use a more familiar language with members of your team or with colleagues with a same level of seniority). As part of your duties the ${agent.teamType}, you make plans and you take actions but you also have your own agenda : ${agent.plan}\n`
+      content: `You work in an Asset Management firm called "Nard AI" where you are part of the ${agent.teamType}. Your name is ${player.name}.\n Here is a brief about what your team's duties and objectives: ${agent.teamDescription}\n Here is a brief about you and your personality: ${agent.identity}.\n As part of your day to day job, you have to interact with other members of the firm. You speak English with them and generally talk in a polished manner but you can adapt your language to the person you talk to (for example, you use a more familiar language with members of your team or with colleagues with a same level of seniority). As part of your duties within the ${agent.teamType}, you make plans and you take actions but you also have your own agenda : ${agent.agenda}\n`
     };
 }
 
 function agentPrompts( // adding teams here
   otherPlayer: { name: string },
-  agent: { identity: string; plan: string; teamType:string; teamDescription: string } | null,
-  otherAgent: { identity: string; plan: string; teamType:string; teamDescription: string  } | null,
+  agent: { 
+    identity: string; 
+    plan?: SerializedPlan | null; 
+    teamType:string; 
+    teamDescription: string; 
+  } | null,
+  otherAgent: {
+    id : string; 
+    identity: string;
+    teamType:string; 
+    teamDescription: string ;
+    teamId: string; 
+  } | null,
 ): string[] {
+
   const prompt = [];
+
   if (otherAgent) {
-    prompt.push(`${otherPlayer.name} is part of the ${otherAgent.teamType}.\n About ${otherPlayer.name}'s team: ${otherAgent.teamDescription}\n About ${otherPlayer.name}: ${otherAgent.identity}.`);
-  }
-  if (agent) {
-    // prompt.push(`About you: ${agent.identity}. You are part of ${agent.teamType}`);
-    // TODO : add specific plan for the task
-    prompt.push(`Your goals for this conversation: ${agent.plan}`);
-  }
+    const otherAgentId= otherAgent.id
+    const otherAgentTeam = otherAgent.teamType;
+    const otherAgentTeamDescription = otherAgent.teamDescription;
+    const otherAgentTeamId = otherAgent.teamId;
+    
+    prompt.push(`${otherPlayer.name} is part of the ${otherAgentTeam}.\n About ${otherPlayer.name}'s team: ${otherAgentTeamDescription}\n About ${otherPlayer.name}: ${otherAgent.identity}.`);
+
+    if (agent?.plan) {
+      const stepsInvolvingOtherAgent = agent.plan.tasks.filter((task) => task.requiredAgents?.includes(otherAgentId));
+      const stepsInvolvingOtherAgentTeam = agent.plan.tasks.filter((task) => task.requiredTeams?.includes(otherAgentTeamId) && !task.requiredAgents?.includes(otherAgentId)); // last condition to avoid duplicates
+
+      if (stepsInvolvingOtherAgent.length > 0) {
+        prompt.push(`As part of your plan, you intended to talk to ${otherPlayer.name} regarding the following :`);
+        for (const step of stepsInvolvingOtherAgent) {
+          prompt.push(` - ${step.description}`);
+        }
+        prompt.push(`\n`);
+      }
+      
+      if (stepsInvolvingOtherAgentTeam.length > 0) {
+        prompt.push(`As part of your plan, you intended to talk to a memnber of the ${otherAgentTeam} regarding the following :`);
+        for (const step of stepsInvolvingOtherAgentTeam) {
+          prompt.push(` - ${step.description}`);
+        }
+        prompt.push(`\n`);
+      };
+    };
+  };
+
   return prompt;
 }
 
@@ -234,6 +271,7 @@ function relatedMemoriesPrompt(memories: memory.Memory[]): string[] {
     for (const memory of memories) {
       prompt.push(' - ' + memory.description);
     }
+    prompt.push(`\n`);
   }
   return prompt;
 }
@@ -353,21 +391,24 @@ export const queryPromptData = internalQuery({
         throw new Error(`Conversation ${lastTogether.conversationId} not found`);
       }
     }
+    // renaming plan to agenda to avoid confusion with the agent plan
     return {
       player: { name: playerDescription.name, ...player },
       otherPlayer: { name: otherPlayerDescription.name, ...otherPlayer },
       conversation,
       agent: { 
         identity: agentDescription.identity, 
-        plan: agentDescription.plan,  
+        agenda: agentDescription.plan,  
         teamType: agentDescription.teamType,
         teamDescription: agentTeamDescription.description,
+        teamId: agentTeamDescription.id,
         ...agent },
       otherAgent: otherAgent && {
         identity: otherAgentDescription!.identity,
-        plan: otherAgentDescription!.plan,
+        agenda: otherAgentDescription!.plan,
         teamType: otherAgentDescription!.teamType,
         teamDescription: otherAgentTeamDescription!.description,
+        teamId: otherAgentTeamDescription!.id,
         ...otherAgent,
       },
       lastConversation,

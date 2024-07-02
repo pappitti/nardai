@@ -73,7 +73,7 @@ async function getOrCreateDefaultWorld(ctx: MutationCtx) {
     agents: [],
     conversations: [],
     players: [],
-    teams: [],
+    teams: []
   });
   const worldStatusId = await ctx.db.insert('worldStatus', {
     engineId: engineId,
@@ -152,3 +152,5 @@ async function shouldCreateTeams(
   }
   return true;
 }
+
+// if adding an activity table with external data, add function shouldCreateActivities similar to shouldCreateAgents and shouldCreateTeams

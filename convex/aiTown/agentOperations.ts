@@ -8,12 +8,14 @@ import {
   leaveConversationMessage,
   startConversationMessage,
 } from '../agent/conversation';
+import { SerializedPlan, Plan, updatePlan } from '../agent/plan';
 import { assertNever } from '../util/assertNever';
 import { serializedAgent } from './agent';
-import { ACTIVITIES, ACTIVITY_COOLDOWN, CONVERSATION_COOLDOWN } from '../constants';
+import { ACTIVITIES, ACTIVITY_COOLDOWN, CONVERSATION_COOLDOWN, AGENT_MOTIVATION } from '../constants';
 import { api, internal } from '../_generated/api';
 import { sleep } from '../util/sleep';
 import { serializedPlayer } from './player';
+import { serializedAgentDescription } from './agentDescription';
 
 export const agentRememberConversation = internalAction({
   args: {
@@ -100,10 +102,12 @@ export const agentDoSomething = internalAction({
     map: v.object(serializedWorldMap),
     otherFreePlayers: v.array(v.object(serializedPlayer)),
     operationId: v.string(),
-    agentTeamType: v.union(v.string(),v.null()),
+    agentDescription: v.union(v.object(serializedAgentDescription),v.null()), 
+    name: v.union(v.string(), v.null()),
+    teamDescription: v.union(v.string(), v.null()),
   },
   handler: async (ctx, args) => {
-    const { player, agent } = args;
+    const { player, agent, agentDescription, teamDescription } = args;
     const map = new WorldMap(args.map);
     const now = Date.now();
     // Don't try to start a new conversation if we were just in one.
@@ -113,9 +117,34 @@ export const agentDoSomething = internalAction({
     const recentlyAttemptedInvite =
       agent.lastInviteAttempt && now < agent.lastInviteAttempt + CONVERSATION_COOLDOWN;
     const recentActivity = player.activity && now < player.activity.until + ACTIVITY_COOLDOWN;
-    // Decide whether to do an activity or wander somewhere.
+    const agentTeamType = agentDescription?.teamType??null;
+    
     if (!player.pathfinding) {
-      if (recentActivity || justLeftConversation) {
+      // decide first if agent wants to work on a plan
+      if (Math.random() < AGENT_MOTIVATION) {
+      // meaning reflect on memories and create or update a plan
+      // DO NOT FORGET TO return
+        let plan: SerializedPlan
+        if (!agent.plan){
+          plan = await Plan.create(args.name!, agentDescription, teamDescription);
+          // actually I need to obtain a plan first before sending the input
+        }
+        else {
+          plan = await updatePlan(args.name!, agentDescription, teamDescription, agent.plan);
+        }
+        await ctx.runMutation(api.aiTown.main.sendInput, {
+          worldId: args.worldId,
+          name: 'finishPlan',
+          args: {
+            operationId: args.operationId,
+            agentId: agent.id,
+            plan: plan,
+          },
+        });
+        return
+      }
+      // Decide whether to do an activity or wander somewhere.
+      else if (recentActivity || justLeftConversation) {
         await sleep(Math.random() * 1000);
         await ctx.runMutation(api.aiTown.main.sendInput, {
           worldId: args.worldId,
@@ -130,8 +159,8 @@ export const agentDoSomething = internalAction({
       } else {
         // TODO: have LLM choose the activity & emoji
         let relevantActivities
-        if (args.agentTeamType !== null){
-          relevantActivities = ACTIVITIES.filter((a)=>a.teams.includes(args.agentTeamType!));
+        if (agentTeamType !== null){
+          relevantActivities = ACTIVITIES.filter((a)=>a.teams.includes(agentTeamType!));
         } else {
           relevantActivities = ACTIVITIES 
         }
@@ -154,6 +183,7 @@ export const agentDoSomething = internalAction({
         return;
       }
     }
+    // if agent is wandering, try to engage in conversation 
     const invitee =
       justLeftConversation || recentlyAttemptedInvite
         ? undefined

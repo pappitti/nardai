@@ -74,7 +74,7 @@ export default function KeywordTracker({
         <div className={`flex flex-nowrap justify-start max-w-full overflow-auto`} style={{maxHeight:maxHeight+"px"}}>
           <svg width={width} height={maxHeight}>
             <g transform={`translate(${margin.left},${margin.top})`}>
-            {conversations?.map((conv, index) => {
+              {conversations?.map((conv, index) => {
                 const x = scaleX(conv.created);
                 const indexPlayer1 = allPlayers.findIndex((p)=>p.pId==conv.participants[0]);
                 const indexPlayer2 = allPlayers.findIndex((p)=>p.pId==conv.participants[1]);

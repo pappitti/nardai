@@ -6,13 +6,13 @@ import { Teams } from '../../data/teams';
 import { internalQuery } from '../_generated/server';
 import { internal } from '../_generated/api';
 
-const selfInternal = internal.aiTown.team // not used at this stage (matbe later to use the findmembers function)
+const selfInternal = internal.aiTown.team // not used at this stage (maybe later to use the findmembers function)
 
 export class Team {
     id: GameId<'teams'>;
     name: string;
     description: string;
-    hq: Point;
+    hq: Point; // for now, it's not used but at some point we may use it as meeting point
 
     constructor(serialized: SerializedTeam) {
         const { id, name, hq, description } = serialized;

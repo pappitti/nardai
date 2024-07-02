@@ -1,7 +1,8 @@
 import { ObjectType, v } from 'convex/values';
 import { GameId, parseGameId } from './ids';
-import { agentId, conversationId, playerId } from './ids';
+import { agentId, conversationId, playerId, planId } from './ids';
 import { serializedPlayer } from './player';
+import { Plan, serializedPlan, SerializedPlan } from '../agent/plan';
 import { Game } from './game';
 import {
   ACTION_TIMEOUT,
@@ -33,10 +34,11 @@ export class Agent {
     name: string;
     operationId: string;
     started: number;
-  };
+  }
+  plan?: Plan;
 
   constructor(serialized: SerializedAgent) {
-    const { id, lastConversation, lastInviteAttempt, inProgressOperation } = serialized;
+    const { id, lastConversation, lastInviteAttempt, inProgressOperation, plan } = serialized;
     const playerId = parseGameId('players', serialized.playerId);
     this.id = parseGameId('agents', id);
     this.playerId = playerId;
@@ -47,12 +49,14 @@ export class Agent {
     this.lastConversation = lastConversation;
     this.lastInviteAttempt = lastInviteAttempt;
     this.inProgressOperation = inProgressOperation;
+    this.plan = plan? new Plan(plan) : undefined;
   }
 
   tick(game: Game, now: number) {
     const player = game.world.players.get(this.playerId);
     const agentDescription = game.agentDescriptions.get(this.id);
-    const agentTeamType = agentDescription?.teamType??null;
+    const playerDescription = game.playerDescriptions.get(this.playerId);
+    const teamDescription = [...game.world.teams.values()].find((t) => t.name === agentDescription?.teamType);
 
     if (!player) {
       throw new Error(`Invalid player ID ${this.playerId}`);
@@ -90,7 +94,9 @@ export class Agent {
           .map((p) => p.serialize()),
         agent: this.serialize(),
         map: game.worldMap.serialize(),
-        agentTeamType: agentTeamType,
+        agentDescription : agentDescription ?? null,
+        name: playerDescription?.name ?? null,
+        teamDescription: teamDescription?.description ?? null,
       });
       return;
     }
@@ -268,6 +274,7 @@ export class Agent {
       lastConversation: this.lastConversation,
       lastInviteAttempt: this.lastInviteAttempt,
       inProgressOperation: this.inProgressOperation,
+      plan: this.plan?.serialize() ,
     };
   }
 }
@@ -285,6 +292,7 @@ export const serializedAgent = {
       started: v.number(),
     }),
   ),
+  plan: v.optional(v.object(serializedPlan)),
 };
 export type SerializedAgent = ObjectType<typeof serializedAgent>;
 
@@ -366,6 +374,7 @@ export const findConversationCandidate = internalQuery({
     }
 
     // Sort by distance and take the nearest candidate.
+    // TODO : change logic to choose a candidate base on the agent's plan
     candidates.sort((a, b) => distance(a.position, position) - distance(b.position, position));
     return candidates[0]?.id;
   },

@@ -42,6 +42,7 @@ export async function rememberConversation(
   const llmMessages: LLMMessage[] = [
     {
       role: 'user',
+      // take into account the plan to assess the conversation. highlight if you learned something that could be helpful in context of your plan.
       content: `You are ${player.name}, and you just finished a conversation with ${otherPlayer.name}. I would
       like you to summarize the conversation from ${player.name}'s perspective, using first-person pronouns like
       "I," and add if you liked or disliked this interaction.`,
@@ -57,6 +58,8 @@ export async function rememberConversation(
       content: `${author.name} to ${recipient.name}: ${message.text}`,
     });
   }
+
+  // add system prompt and change the role to assistant for the repsonse?
   llmMessages.push({ role: 'user', content: 'Summary:' });
   const { content } = await chatCompletion({
     messages: llmMessages,
@@ -154,6 +157,8 @@ export const loadConversation = internalQuery({
     };
   },
 });
+
+// change searchMemories to choose between player memories and plan memories
 
 export async function searchMemories(
   ctx: ActionCtx,

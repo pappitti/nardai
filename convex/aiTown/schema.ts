@@ -7,7 +7,7 @@ import { serializedAgentDescription } from './agentDescription';
 import { serializedWorld } from './world';
 import { serializedWorldMap } from './worldMap';
 import { serializedConversation } from './conversation';
-import { conversationId, playerId } from './ids';
+import { conversationId, playerId, planId, taskId, teamId, agentId } from './ids';
 
 export const aiTownTables = {
   // This table has a single document that stores all players, conversations, and agents. This
@@ -78,4 +78,30 @@ export const aiTownTables = {
     .index('edge', ['worldId', 'player1', 'player2', 'ended'])
     .index('conversation', ['worldId', 'player1', 'conversationId'])
     .index('playerHistory', ['worldId', 'player1', 'ended']),
+
+  
+  // as for conversations and agents, we want to keep track of old plans for debugging and analysis.
+  // but we don't want to keep them in the game state.
+  archivedPlans: defineTable({ 
+    worldId: v.id('worlds'), 
+    id: v.optional(planId), // in practice it is not (business logic does not allow it) but I was tired of fixing the type error
+    agent: agentId,
+    created: v.number(),
+  })
+    .index('agent', ['worldId', 'agent']),
+
+  archivedTasks: defineTable({
+    worldId: v.id('worlds'),
+    id: taskId,
+    planId,
+    description: v.string(),
+    parentStepId: v.optional(taskId),
+    status: v.union(v.literal('TODO'), v.literal('completed'), v.literal('inProgress')),
+    keyTakeaways: v.optional(v.string()),
+    startTime: v.optional(v.number()),
+    requiredTeams: v.optional(v.array(teamId)),
+    requiredPlayers: v.optional(v.array(playerId)),
+  })
+    .index('plan', ['worldId', 'planId'])
+    .index('step', ['worldId', 'planId', 'id'])
 };
