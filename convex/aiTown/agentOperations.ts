@@ -1,5 +1,6 @@
 import { v } from 'convex/values';
 import { internalAction } from '../_generated/server';
+import {Game} from '../aiTown/game';
 import { WorldMap, serializedWorldMap } from './worldMap';
 import { rememberConversation } from '../agent/memory';
 import { GameId, agentId, conversationId, playerId } from './ids';
@@ -8,7 +9,6 @@ import {
   leaveConversationMessage,
   startConversationMessage,
 } from '../agent/conversation';
-import { SerializedPlan, Plan, updatePlan } from '../agent/plan';
 import { assertNever } from '../util/assertNever';
 import { serializedAgent } from './agent';
 import { ACTIVITIES, ACTIVITY_COOLDOWN, CONVERSATION_COOLDOWN, AGENT_MOTIVATION } from '../constants';
@@ -103,11 +103,11 @@ export const agentDoSomething = internalAction({
     otherFreePlayers: v.array(v.object(serializedPlayer)),
     operationId: v.string(),
     agentDescription: v.union(v.object(serializedAgentDescription),v.null()), 
-    name: v.union(v.string(), v.null()),
-    teamDescription: v.union(v.string(), v.null()),
+    //name: v.union(v.string(), v.null()),
+    //teamDescription: v.union(v.string(), v.null()),
   },
   handler: async (ctx, args) => {
-    const { player, agent, agentDescription, teamDescription } = args;
+    const { player, agent, agentDescription} = args;
     const map = new WorldMap(args.map);
     const now = Date.now();
     // Don't try to start a new conversation if we were just in one.
@@ -117,28 +117,19 @@ export const agentDoSomething = internalAction({
     const recentlyAttemptedInvite =
       agent.lastInviteAttempt && now < agent.lastInviteAttempt + CONVERSATION_COOLDOWN;
     const recentActivity = player.activity && now < player.activity.until + ACTIVITY_COOLDOWN;
-    const agentTeamType = agentDescription?.teamType??null;
     
     if (!player.pathfinding) {
       // decide first if agent wants to work on a plan
       if (Math.random() < AGENT_MOTIVATION) {
       // meaning reflect on memories and create or update a plan
       // DO NOT FORGET TO return
-        let plan: SerializedPlan
-        if (!agent.plan){
-          plan = await Plan.create(args.name!, agentDescription, teamDescription);
-          // actually I need to obtain a plan first before sending the input
-        }
-        else {
-          plan = await updatePlan(args.name!, agentDescription, teamDescription, agent.plan);
-        }
         await ctx.runMutation(api.aiTown.main.sendInput, {
           worldId: args.worldId,
-          name: 'finishPlan',
+          name: 'finishPlanning',
           args: {
             operationId: args.operationId,
             agentId: agent.id,
-            plan: plan,
+            //plan: plan
           },
         });
         return
@@ -159,8 +150,8 @@ export const agentDoSomething = internalAction({
       } else {
         // TODO: have LLM choose the activity & emoji
         let relevantActivities
-        if (agentTeamType !== null){
-          relevantActivities = ACTIVITIES.filter((a)=>a.teams.includes(agentTeamType!));
+        if (agentDescription?.teamType !== null){
+          relevantActivities = ACTIVITIES.filter((a)=>a.teams.includes(agentDescription?.teamType!));
         } else {
           relevantActivities = ACTIVITIES 
         }

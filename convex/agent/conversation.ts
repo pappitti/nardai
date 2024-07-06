@@ -223,10 +223,10 @@ function agentPrompts( // adding teams here
     prompt.push(`${otherPlayer.name} is part of the ${otherAgentTeam}.\n About ${otherPlayer.name}'s team: ${otherAgentTeamDescription}\n About ${otherPlayer.name}: ${otherAgent.identity}.`);
 
     if (agent?.plan) {
-      const stepsInvolvingOtherAgent = agent.plan.tasks.filter((task) => task.requiredAgents?.includes(otherAgentId));
-      const stepsInvolvingOtherAgentTeam = agent.plan.tasks.filter((task) => task.requiredTeams?.includes(otherAgentTeamId) && !task.requiredAgents?.includes(otherAgentId)); // last condition to avoid duplicates
+      const stepsInvolvingOtherAgent = agent.plan.tasks?.filter((task) => task.requiredAgents?.includes(otherAgentId));
+      const stepsInvolvingOtherAgentTeam = agent.plan.tasks?.filter((task) => task.requiredTeams?.includes(otherAgentTeamId) && !task.requiredAgents?.includes(otherAgentId)); // last condition to avoid duplicates
 
-      if (stepsInvolvingOtherAgent.length > 0) {
+      if (stepsInvolvingOtherAgent && stepsInvolvingOtherAgent.length > 0) {
         prompt.push(`As part of your plan, you intended to talk to ${otherPlayer.name} regarding the following :`);
         for (const step of stepsInvolvingOtherAgent) {
           prompt.push(` - ${step.description}`);
@@ -234,7 +234,7 @@ function agentPrompts( // adding teams here
         prompt.push(`\n`);
       }
       
-      if (stepsInvolvingOtherAgentTeam.length > 0) {
+      if (stepsInvolvingOtherAgentTeam && stepsInvolvingOtherAgentTeam.length > 0) {
         prompt.push(`As part of your plan, you intended to talk to a memnber of the ${otherAgentTeam} regarding the following :`);
         for (const step of stepsInvolvingOtherAgentTeam) {
           prompt.push(` - ${step.description}`);

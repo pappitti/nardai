@@ -1,6 +1,6 @@
 import { ObjectType, v } from 'convex/values';
 import { GameId, parseGameId } from './ids';
-import { agentId, conversationId, playerId, planId } from './ids';
+import { agentId, conversationId, playerId} from './ids';
 import { serializedPlayer } from './player';
 import { Plan, serializedPlan, SerializedPlan } from '../agent/plan';
 import { Game } from './game';
@@ -49,14 +49,14 @@ export class Agent {
     this.lastConversation = lastConversation;
     this.lastInviteAttempt = lastInviteAttempt;
     this.inProgressOperation = inProgressOperation;
-    this.plan = plan? new Plan(plan) : undefined;
+    this.plan = plan && new Plan(plan);
   }
 
   tick(game: Game, now: number) {
     const player = game.world.players.get(this.playerId);
     const agentDescription = game.agentDescriptions.get(this.id);
-    const playerDescription = game.playerDescriptions.get(this.playerId);
-    const teamDescription = [...game.world.teams.values()].find((t) => t.name === agentDescription?.teamType);
+    // const playerDescription = game.playerDescriptions.get(this.playerId);
+    // const teamDescription = [...game.world.teams.values()].find((t) => t.name === agentDescription?.teamType);
 
     if (!player) {
       throw new Error(`Invalid player ID ${this.playerId}`);
@@ -95,8 +95,7 @@ export class Agent {
         agent: this.serialize(),
         map: game.worldMap.serialize(),
         agentDescription : agentDescription ?? null,
-        name: playerDescription?.name ?? null,
-        teamDescription: teamDescription?.description ?? null,
+        //teamDescription: teamDescription?.description ?? null,
       });
       return;
     }

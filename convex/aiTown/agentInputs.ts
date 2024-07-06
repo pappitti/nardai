@@ -1,5 +1,5 @@
 import { v } from 'convex/values';
-import { agentId, conversationId, parseGameId, planId } from './ids';
+import { agentId, conversationId, parseGameId} from './ids';
 import { Player, activity } from './player';
 import { Conversation, conversationInputs } from './conversation';
 import { movePlayer } from './movement';
@@ -8,7 +8,7 @@ import { point } from '../util/types';
 import { Descriptions } from '../../data/characters';
 import { AgentDescription } from './agentDescription';
 import { Agent } from './agent';
-import { Plan, serializedPlan } from '../agent/plan';
+import { Plan, serializedPlan, SerializedPlan, reflectOnPlan} from '../agent/plan';
 
 export const agentInputs = {
   finishRememberConversation: inputHandler({
@@ -75,7 +75,7 @@ export const agentInputs = {
       return null;
     },
   }),
-  finishPlan: inputHandler({
+  finishPlanning: inputHandler({
     args: {
       operationId: v.string(),
       agentId: v.id('agents'),
@@ -95,10 +95,10 @@ export const agentInputs = {
         return null;
       }
       delete agent.inProgressOperation;
-      if (!args.plan.id) {
-         args.plan.id = game.allocId('plans');
-      }
-      agent.plan = new Plan(args.plan);
+      // 
+      const newPlan = new Plan (args.plan);
+      agent.plan = newPlan;
+      
       return null;
     },
   }),

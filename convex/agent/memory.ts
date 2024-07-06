@@ -400,6 +400,7 @@ async function reflectOnMemories(
   }
   return true;
 }
+
 export const getReflectionMemories = internalQuery({
   args: { worldId: v.id('worlds'), playerId, numberOfItems: v.number() },
   handler: async (ctx, args) => {
