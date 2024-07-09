@@ -1,7 +1,10 @@
 import { v } from 'convex/values';
+import { Doc, Id } from './_generated/dataModel';
 import { mutation, query } from './_generated/server';
 import { insertInput } from './aiTown/insertInput';
 import { conversationId, playerId } from './aiTown/ids';
+
+export type Message = Doc<'messages'>
 
 export const listMessages = query({
   args: {

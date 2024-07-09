@@ -2,7 +2,7 @@ import { ObjectType, v } from 'convex/values';
 import { GameId, parseGameId } from './ids';
 import { agentId, conversationId, playerId} from './ids';
 import { serializedPlayer } from './player';
-import { Plan, serializedPlan, SerializedPlan } from '../agent/plan';
+import { Plan, serializedPlan, SerializedPlan } from './plan';
 import { Game } from './game';
 import {
   ACTION_TIMEOUT,
@@ -28,6 +28,7 @@ export class Agent {
   id: GameId<'agents'>;
   playerId: GameId<'players'>;
   toRemember?: GameId<'conversations'>;
+  updatePlan?: SerializedPlan;
   lastConversation?: number;
   lastInviteAttempt?: number;
   inProgressOperation?: {
@@ -46,6 +47,7 @@ export class Agent {
       serialized.toRemember !== undefined
         ? parseGameId('conversations', serialized.toRemember)
         : undefined;
+    this.updatePlan = serialized.plan;
     this.lastConversation = lastConversation;
     this.lastInviteAttempt = lastInviteAttempt;
     this.inProgressOperation = inProgressOperation;
@@ -78,6 +80,32 @@ export class Agent {
     if (doingActivity && (conversation || player.pathfinding)) {
       player.activity!.until = now;
     }
+    // Check to see if we have a conversation we need to remember.
+    // NOTE : this was initially after the conversation check, but I moved it here as I was worried that it could be the source of an error (sometimes agent could not remember the conversation and I assumed it had laready been archived)
+    if (this.toRemember) {
+      // Fire off the action to remember the conversation.
+      console.log(`Agent ${this.id} remembering conversation ${this.toRemember}`);
+      this.startOperation(game, now, 'agentRememberConversation', {
+        worldId: game.worldId,
+        playerId: this.playerId,
+        agentId: this.id,
+        conversationId: this.toRemember,
+      });
+      delete this.toRemember;
+      return;
+    }
+    // agent updates its plan
+    if (this.updatePlan) {
+      // Fire off the action to updates the plan.
+      console.log(`Agent ${this.id} updating plan`);
+      this.startOperation(game, now, 'agentUpdatePlan', {
+        worldId: game.worldId,
+        agentId: this.id,
+        plan: this.updatePlan,
+      });
+      delete this.updatePlan;
+      return;
+    }
     // If we're not in a conversation, do something.
     // If we aren't doing an activity or moving, do something.
     // If we have been wandering but haven't thought about something to do for
@@ -99,19 +127,7 @@ export class Agent {
       });
       return;
     }
-    // Check to see if we have a conversation we need to remember.
-    if (this.toRemember) {
-      // Fire off the action to remember the conversation.
-      console.log(`Agent ${this.id} remembering conversation ${this.toRemember}`);
-      this.startOperation(game, now, 'agentRememberConversation', {
-        worldId: game.worldId,
-        playerId: this.playerId,
-        agentId: this.id,
-        conversationId: this.toRemember,
-      });
-      delete this.toRemember;
-      return;
-    }
+    
     if (conversation && member) {
       const [otherPlayerId, otherMember] = [...conversation.participants.entries()].find(
         ([id]) => id !== player.id,
@@ -270,6 +286,7 @@ export class Agent {
       id: this.id,
       playerId: this.playerId,
       toRemember: this.toRemember,
+      updatePlan: this.updatePlan,
       lastConversation: this.lastConversation,
       lastInviteAttempt: this.lastInviteAttempt,
       inProgressOperation: this.inProgressOperation,
@@ -282,6 +299,7 @@ export const serializedAgent = {
   id: agentId,
   playerId: playerId,
   toRemember: v.optional(conversationId),
+  updatePlan: v.optional(v.object(serializedPlan)),
   lastConversation: v.optional(v.number()),
   lastInviteAttempt: v.optional(v.number()),
   inProgressOperation: v.optional(
@@ -302,6 +320,9 @@ export async function runAgentOperation(ctx: MutationCtx, operation: string, arg
   switch (operation) {
     case 'agentRememberConversation':
       reference = internal.aiTown.agentOperations.agentRememberConversation;
+      break;
+    case 'agentUpdatePlan':
+      reference = internal.aiTown.agentOperations.agentUpdatePlan;
       break;
     case 'agentGenerateMessage':
       reference = internal.aiTown.agentOperations.agentGenerateMessage;

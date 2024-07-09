@@ -8,13 +8,14 @@ import { point } from '../util/types';
 import { Descriptions } from '../../data/characters';
 import { AgentDescription } from './agentDescription';
 import { Agent } from './agent';
-import { Plan, serializedPlan, SerializedPlan, reflectOnPlan} from '../agent/plan';
+import { Plan, serializedPlan} from './plan';
 
 export const agentInputs = {
   finishRememberConversation: inputHandler({
     args: {
       operationId: v.string(),
       agentId,
+      plan : v.optional(v.object(serializedPlan)),
     },
     handler: (game, now, args) => {
       const agentId = parseGameId('agents', args.agentId);
@@ -30,6 +31,9 @@ export const agentInputs = {
       } else {
         delete agent.inProgressOperation;
         delete agent.toRemember;
+        if (args.plan) {
+          agent.updatePlan=args.plan;
+        }
       }
       return null;
     },
@@ -41,6 +45,7 @@ export const agentInputs = {
       destination: v.optional(point),
       invitee: v.optional(v.id('players')),
       activity: v.optional(activity),
+      plan : v.optional(v.object(serializedPlan)),
     },
     handler: (game, now, args) => {
       const agentId = parseGameId('agents', args.agentId);
@@ -57,6 +62,9 @@ export const agentInputs = {
       }
       delete agent.inProgressOperation;
       const player = game.world.players.get(agent.playerId)!;
+      if (args.plan) {
+        agent.updatePlan = args.plan;
+      }
       if (args.invitee) {
         const inviteeId = parseGameId('players', args.invitee);
         const invitee = game.world.players.get(inviteeId);
@@ -95,7 +103,9 @@ export const agentInputs = {
         return null;
       }
       delete agent.inProgressOperation;
-      // 
+      if (!args.plan) {
+        throw new Error(`Agent ${agentId} didn't have a plan to add`);
+      }
       const newPlan = new Plan (args.plan);
       agent.plan = newPlan;
       

@@ -58,7 +58,7 @@ export async function rememberConversation(
       content: `${author.name} to ${recipient.name}: ${message.text}`,
     });
   }
-
+  // reflect on Plan paasing te messages and the set of author NAMES
   // add system prompt and change the role to assistant for the repsonse?
   llmMessages.push({ role: 'user', content: 'Summary:' });
   const { content } = await chatCompletion({

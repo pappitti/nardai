@@ -11,11 +11,13 @@ import {
 } from '../agent/conversation';
 import { assertNever } from '../util/assertNever';
 import { serializedAgent } from './agent';
+import { serializedPlan, SerializedPlan, reflectOnPlan } from './plan';
 import { ACTIVITIES, ACTIVITY_COOLDOWN, CONVERSATION_COOLDOWN, AGENT_MOTIVATION } from '../constants';
 import { api, internal } from '../_generated/api';
 import { sleep } from '../util/sleep';
 import { serializedPlayer } from './player';
 import { serializedAgentDescription } from './agentDescription';
+import { Serializable } from 'child_process';
 
 export const agentRememberConversation = internalAction({
   args: {
@@ -26,6 +28,7 @@ export const agentRememberConversation = internalAction({
     operationId: v.string(),
   },
   handler: async (ctx, args) => {
+    // add const plan
     await rememberConversation(
       ctx,
       args.worldId,
@@ -40,6 +43,26 @@ export const agentRememberConversation = internalAction({
       args: {
         agentId: args.agentId,
         operationId: args.operationId,
+      },
+    });
+  },
+});
+
+export const agentUpdatePlan = internalAction({
+  args: {
+    worldId: v.id('worlds'),
+    agentId,
+    plan: v.object(serializedPlan),
+    operationId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.runMutation(api.aiTown.main.sendInput, {
+      worldId: args.worldId,
+      name: 'finishPlanning',
+      args: {
+        operationId: args.operationId,
+        agentId: args.agentId,
+        plan: args.plan
       },
     });
   },
@@ -122,16 +145,25 @@ export const agentDoSomething = internalAction({
       // decide first if agent wants to work on a plan
       if (Math.random() < AGENT_MOTIVATION) {
       // meaning reflect on memories and create or update a plan
-      // DO NOT FORGET TO return
+      // Actually we shoudl keep finishDoSomething but add a new input to updatePlan (finishUpdatePlan shoudl be a separate operation trigeered by reflecting on plan or remembering conversation)
+        const newPlan : SerializedPlan = await reflectOnPlan(
+          ctx,
+          args.worldId,
+          agent.id as GameId<'agents'>,
+          now,
+          agent.plan,
+        );
+        await sleep(Math.random() * 1000);
         await ctx.runMutation(api.aiTown.main.sendInput, {
           worldId: args.worldId,
-          name: 'finishPlanning',
+          name: 'finishDoSomething',
           args: {
             operationId: args.operationId,
             agentId: agent.id,
-            //plan: plan
+            plan : newPlan
           },
         });
+
         return
       }
       // Decide whether to do an activity or wander somewhere.

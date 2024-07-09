@@ -1,5 +1,7 @@
 import { v } from 'convex/values';
 import { playerId, conversationId, agentId, teamId } from '../aiTown/ids';
+import { serializedPlan } from '../aiTown/plan';
+import { serializedTask } from '../aiTown/task';
 import { defineTable } from 'convex/server';
 import { LLM_CONFIG } from '../util/llm';
 
@@ -44,31 +46,8 @@ export const memoryTables = {
   }),
 };
 
-export const planTables = {
-  plans: defineTable({
-    worldId: v.id('worlds'),
-    agentId: agentId,
-    created: v.number(),
-  }).index('agent', ['worldId', 'agentId']),
-  tasks: defineTable({
-    worldId: v.id('worlds'),
-    planId: v.id('plans'),
-    description: v.string(),
-    parentTaskId: v.optional(v.id('tasks')),
-    nthChild: v.number(),
-    status: v.union(v.literal('TODO'), v.literal('completed'), v.literal('inProgress')),
-    keyTakeaways: v.optional(v.string()),
-    startTime: v.optional(v.number()),
-    requiredTeams: v.optional(v.array(teamId)),
-    requiredAgents: v.optional(v.array(agentId)),
-  })
-    .index('plan', ['worldId', 'planId'])
-    .index('subTasks', ['worldId', 'planId', 'parentTaskId']),
-}
-
 export const agentTables = {
   ...memoryTables,
-  ...planTables,
   embeddingsCache: defineTable({
     textHash: v.bytes(),
     embedding: v.array(v.float64()),

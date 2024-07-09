@@ -297,24 +297,6 @@ export class Game extends AbstractGame {
       if (!newWorld.agents.some((a) => a.id === agent.id)) {
         await ctx.db.insert('archivedAgents', { worldId, ...agent });
       }
-      //// If agent still exists archive newly deleted plans
-      // else {
-      //   const newWorldAgent = newWorld.agents.find((a) => a.id === agent.id);
-      //   if (agent.plan && newWorldAgent && newWorldAgent.plan?.id !== agent.plan.id) {
-      //     const archivedPlan = { 
-      //       worldId, 
-      //       id: agent.plan.id,
-      //       agent: agent.id,
-      //       created: agent.plan.created
-      //     };
-      //     await ctx.db.insert('archivedPlans', archivedPlan );
-      //     if (agent.plan.tasks) {
-      //       for (const step of agent.plan.tasks) {
-      //         await ctx.db.insert('archivedTasks', { worldId, ...step });
-      //       }
-      //     }
-      //   }
-      // }  
     }
     // Update the world state.
     await ctx.db.replace(worldId, newWorld);

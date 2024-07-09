@@ -79,4 +79,27 @@ export const aiTownTables = {
     .index('conversation', ['worldId', 'player1', 'conversationId'])
     .index('playerHistory', ['worldId', 'player1', 'ended']),
 
-  };
+  // We do not create nested objects here, as the agent layer will be responsible for managing
+  plans: defineTable({
+    worldId: v.id('worlds'),
+    agentId: agentId,
+    created: v.number(),
+  }).index('agent', ['worldId', 'agentId']),
+
+  tasks: defineTable({
+    worldId: v.id('worlds'),
+    planId: v.id('plans'),
+    id : v.id('tasks'),
+    description: v.string(),
+    parentTaskId: v.optional(v.id('tasks')),
+    nthChild: v.optional(v.number()),
+    status: v.union(v.literal('TODO'), v.literal('completed'), v.literal('inProgress')),
+    keyTakeaways: v.optional(v.string()),
+    startTime: v.optional(v.number()),
+    finishBefore: v.optional(v.number()),
+    requiredTeams: v.optional(v.array(teamId)),
+    requiredAgents: v.optional(v.array(agentId)),
+  })
+    .index('plan', ['worldId', 'planId'])
+    .index('subTasks', ['worldId', 'planId', 'parentTaskId']),
+}
