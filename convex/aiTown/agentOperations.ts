@@ -2,7 +2,7 @@ import { v } from 'convex/values';
 import { internalAction } from '../_generated/server';
 import {Game} from '../aiTown/game';
 import { WorldMap, serializedWorldMap } from './worldMap';
-import { rememberConversation } from '../agent/memory';
+import { rememberConversation, reflectOnMemories } from '../agent/memory';
 import { GameId, agentId, conversationId, playerId } from './ids';
 import {
   continueConversationMessage,
@@ -17,7 +17,6 @@ import { api, internal } from '../_generated/api';
 import { sleep } from '../util/sleep';
 import { serializedPlayer } from './player';
 import { serializedAgentDescription } from './agentDescription';
-import { Serializable } from 'child_process';
 
 export const agentRememberConversation = internalAction({
   args: {
@@ -25,17 +24,18 @@ export const agentRememberConversation = internalAction({
     playerId,
     agentId,
     conversationId,
+    planId : v.optional(v.id('plans')),
     operationId: v.string(),
   },
   handler: async (ctx, args) => {
-    // add const plan
-    await rememberConversation(
+    const {description, newPlan} = await rememberConversation(
       ctx,
       args.worldId,
       args.agentId as GameId<'agents'>,
       args.playerId as GameId<'players'>,
       args.conversationId as GameId<'conversations'>,
-    );
+      args.planId,
+    ) || { description: '', newPlan: null };
     await sleep(Math.random() * 1000);
     await ctx.runMutation(api.aiTown.main.sendInput, {
       worldId: args.worldId,
@@ -43,6 +43,7 @@ export const agentRememberConversation = internalAction({
       args: {
         agentId: args.agentId,
         operationId: args.operationId,
+        plan: newPlan,
       },
     });
   },
@@ -144,16 +145,19 @@ export const agentDoSomething = internalAction({
     if (!player.pathfinding) {
       // decide first if agent wants to work on a plan
       if (Math.random() < AGENT_MOTIVATION) {
-      // meaning reflect on memories and create or update a plan
-      // Actually we shoudl keep finishDoSomething but add a new input to updatePlan (finishUpdatePlan shoudl be a separate operation trigeered by reflecting on plan or remembering conversation)
+      // meaning motivation to reflect on memories and create or update a plan
+        await reflectOnMemories(ctx, args.worldId, player.id as GameId<'players'>);
+        
         const newPlan : SerializedPlan = await reflectOnPlan(
           ctx,
           args.worldId,
           agent.id as GameId<'agents'>,
           now,
-          agent.plan,
+          agent.plan?.id,
         );
+
         await sleep(Math.random() * 1000);
+
         await ctx.runMutation(api.aiTown.main.sendInput, {
           worldId: args.worldId,
           name: 'finishDoSomething',
@@ -188,7 +192,7 @@ export const agentDoSomething = internalAction({
           relevantActivities = ACTIVITIES 
         }
         const activity = relevantActivities[Math.floor(Math.random() * relevantActivities.length)];
-         //const activity = ACTIVITIES[Math.floor(Math.random() * ACTIVITIES.length)];
+         //proviously in AI town : const activity = ACTIVITIES[Math.floor(Math.random() * ACTIVITIES.length)];
         await sleep(Math.random() * 1000);
         await ctx.runMutation(api.aiTown.main.sendInput, {
             worldId: args.worldId,

@@ -7,6 +7,7 @@ import { SerializedAgentDescription } from './agentDescription';
 import { xmlTasks } from '../agent/planning';
 import { LLMMessage, chatCompletion } from '../util/llm';
 import { SerializedPlayerDescription } from './playerDescription';
+import { memo } from 'react';
 
 // not sure we actually need a class here. 
 // export type Task = Doc<'tasks'>; may do the job
@@ -82,13 +83,14 @@ export async function generateTasks(
         playerDescription: SerializedPlayerDescription, 
         agentDescription : SerializedAgentDescription,
         xmlPlan?: string|undefined, 
-        messages?: Doc<'messages'>[],
-        authors?: any, // TODO
-        level?: number 
+        conversationHistory?: string,
+        otherAgent?: string, 
+        level?: number, 
+        memoriesByTask? : string [] 
     }
   ) {
 
-    const {xmlPlan, messages, level, authors} = args;
+    const {xmlPlan, conversationHistory, level, otherAgent, memoriesByTask} = args;
     const teamDescription = args.teams.find((t) => t.name === args.agentDescription?.teamType);
 
     const tasks = await getSubtasks(
@@ -98,8 +100,9 @@ export async function generateTasks(
         teamDescription?.name, 
         level, 
         xmlPlan, 
-        messages, 
-        authors
+        conversationHistory, 
+        otherAgent,
+        memoriesByTask
     );
 
    return tasks;
@@ -112,15 +115,15 @@ async function getSubtasks(
     teamDescription:string | undefined,
     level: number | undefined,
     xmlPlan: string | undefined,
-    messages: Doc<'messages'>[] | undefined,
-    authors: string[], 
+    conversationHistory: string | undefined,
+    otherAgent: string | undefined, 
+    memoriesByTask: string[] | undefined
 ){
     const depth = level || 0;
     const playerName = playerDescription.name;
-    const otherPlayer = authors.find((a) => a !== playerName);
     const systemPrompt : LLMMessage = {
         role: 'system',
-        content: `You work in an Asset Management firm called "Nard AI" where you are part of the ${agentDescription?.teamType}. Your name is ${playerName}.\n Here is a brief about what your team's duties and objectives: ${teamDescription}\n As part of your duties the ${agentDescription?.teamType}, you make plans and you take actions but you also have your own agenda : ${agentDescription?.plan}. \n To structure your plan, you use the XML syntax which allows to nest subtasks within tasks.\n When generating an XML representation of tasks, please follow these guidelines:\n 1 - Each task should be enclosed in a <task> tag.\n 2 - apart from id and depth, attributes should be included as separate child elements within the <task> tag.\n 3 - some elements may be optional, only include optional elements if they have a value.\n 4 - after marking a task as completed, you can write you key takeaways between <keyTakeaways> tags.\n 
+        content: `You work in an Asset Management firm called "Nard AI" where you are part of the ${agentDescription?.teamType}. Your name is ${playerName}.\n Here is a brief about what your team's duties and objectives: ${teamDescription}\n As part of your duties the ${agentDescription?.teamType}, you make plans and you take actions but you also have your own agenda : ${agentDescription?.plan}. \n To structure your plan, you use the XML syntax which allows to nest subtasks within tasks.\n When generating an XML representation of tasks, please follow these guidelines:\n 1 - Each task should be enclosed in a <task> tag.\n 2 - apart from id and depth, attributes should be included as separate child elements within the <task> tag.\n 3 - some elements may be optional, only include optional elements if they have a value.\n 4 - after marking a task as completed, you can write your key takeaways between <keyTakeaways> tags.\n 5 - the response must be parseable as XML using DOMParser.\n 
         Use the following structure for each task:<task id="[unique_id]" depth="[depth_number]">
         <description>[task_description]</description>
         <status>["TODO" | "completed" | "inProgress"]</status>
@@ -178,13 +181,8 @@ async function getSubtasks(
 
     const prompt : string[] = [];
 
-    if (messages && otherPlayer) {
-        prompt.push(`you just finished a conversation which may have contained important insights. The conversation is detailed below:`)
-        for (const message of messages) {
-            const author = message.author === playerDescription.playerId ? playerName : otherPlayer;
-            const recipient = message.author === playerDescription.playerId ? otherPlayer : playerName;
-            prompt.push( `${author} to ${recipient}: ${message.text}`);
-          }
+    if (conversationHistory && otherAgent) {
+        prompt.push(`you just finished a conversation with ${otherAgent} which may have contained important insights. The conversation is detailed below:\n ${conversationHistory}`);
     }
 
     if (!xmlPlan) {
@@ -192,7 +190,10 @@ async function getSubtasks(
     }
     else {
         prompt.push(`You have already started to establish the following list of tasks taking into account your professional duties and your personal objectives : ${xmlPlan}`);
-        prompt.push(`You need to adjust ot add subtasks for each task of depth ${depth}. You can only add a maximum of ${5-(depth)} subtasks for each task of depth ${depth}}. Do not change existing tasks. You can only add new subtasks. All subtasks of a parent task mus be enclosed in a <tasks> tag`);
+        if (memoriesByTask) {
+            prompt.push(`Based on your past experiences, you have the following memories related to tasks in your previous plan :\n ${memoriesByTask.join('\n')}`);
+        }
+        prompt.push(`You need to adjust ot add subtasks for each task of depth ${depth}. You can only add a maximum of ${5-(depth)} subtasks for each task of depth ${depth}}. Do not change to tasks if their depth is below ${depth}. All subtasks of a parent task must be enclosed in a <tasks> tag`);
     }
 
     prompt.push('Please generate a list of tasks following the xml format, ensuring proper nesting and including relevant optional elements where appropriate.','[no prose]')
@@ -208,7 +209,7 @@ async function getSubtasks(
 
     const { content } = await chatCompletion({
         messages: llmMessages,
-        stop: '</tasks>',
+        //stop: '</tasks>',
     });
 
     const taskList = parseXMLTasks(content);
@@ -228,8 +229,9 @@ async function getSubtasks(
             teamDescription, 
             newLevel, 
             newXmlTasks, 
-            messages, 
-            authors
+            conversationHistory, 
+            otherAgent,
+            memoriesByTask
             );
 
         retainedTasks = [...retainedTasks,...subTaskList];
@@ -246,8 +248,8 @@ function parseXMLTasks(xml: string) {
     function parseTask (taskElement: Element, parentChainId: string = '', index:number): any {
         const task: any = {
           id: parentChainId
-            ? index.toString() 
-            :[parentChainId,index.toString()].join("."), // old : taskElement.getAttribute("id"),
+            ? [parentChainId,index.toString()].join(".")
+            : index.toString(), // old : taskElement.getAttribute("id"),
           depth: parentChainId
             ? parentChainId.split(".").length 
             : 0, // old : parseInt(taskElement.getAttribute("depth") || "0"),

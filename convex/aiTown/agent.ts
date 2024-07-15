@@ -90,6 +90,7 @@ export class Agent {
         playerId: this.playerId,
         agentId: this.id,
         conversationId: this.toRemember,
+        planId: this.plan?.id,
       });
       delete this.toRemember;
       return;

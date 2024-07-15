@@ -1,10 +1,12 @@
 import { ObjectType, v } from 'convex/values';
 import { parseMap } from '../util/object';
 import { internal } from '../_generated/api';
-import { Message } from '../messages';
+import { asyncMap } from '../util/asyncMap';
 import { Doc, Id } from '../_generated/dataModel';
 import { GameId, parseGameId, agentId} from './ids';
 import { xmlTasks } from '../agent/planning';
+import * as embeddingsCache from '../agent/embeddingsCache';
+import * as memory from '../agent/memory';
 import { Task, serializedTask, SerializedTask, generateTasks } from './task';
 import { ActionCtx, internalMutation, internalQuery } from '../_generated/server';
 
@@ -37,10 +39,6 @@ export class Plan {
     };
 
     serialize(): SerializedPlan {
-        
-        // if (this.tasks && this.tasks.size > 0) {
-        //     result.tasks = [...this.tasks.values()].map(task => task.serialize());
-        // }
     
         return {
             id: this.id,
@@ -49,31 +47,7 @@ export class Plan {
         };
     };
 
-    getParents(id: Id<'tasks'>): Task[] {
-        const parents: Task[] = [];
-        const targetTask = this.tasks?.get(id);
-        if (!targetTask) {
-            return parents;
-        }
-        parents.push(targetTask)
-        let parentId = targetTask.parentTaskId;
-        while (parentId) {
-            const parentTask = this.tasks?.get(parentId);
-            if (!parentTask) {
-                break;
-            }
-            parents.push(parentTask);
-            parentId = parentTask.parentTaskId;
-        }
-        return parents;
-    }
-
 };
-
-// may not be needed if we remove the Task class altogether
-// export interface dbTask extends Omit<SerializedTask,"id"> {
-//     _id: string;
-// }
 
 
 export async function reflectOnPlan(
@@ -81,22 +55,49 @@ export async function reflectOnPlan(
     worldId: Id<'worlds'>,
     agentId: GameId<'agents'>,
     now: number,
-    plan?: SerializedPlan,
-    messages?: Message[],
-    authors?: string[],
+    planId?: Id<'plans'>,
+    conversationHistory?: string,
+    otherAgent?: string,
   ) {
-
-    // get memories
 
     const {teams, playerDescription, agentDescription} = await ctx.runQuery(selfInternal.loadData, {
         worldId,
         agentId
       });
 
-    let xmlPlan;
-    if (plan && plan.tasks){
-        xmlPlan = xmlTasks(plan.tasks);
+    const planTasks= planId && await ctx.runQuery(selfInternal.getPlan, {worldId, planId});
+
+    let xmlPlan : string | undefined;
+    if (planTasks){
+        xmlPlan = xmlTasks(planTasks);
     }
+
+    // TODO : everything in a if statement ? if (planTasks) { ... }
+    const taskParentStrings= planTasks && planTasks
+        .filter((t)=> 
+            t.id.split('.').length===3 // ids are of the form "1.2.3" with one index for each level
+            && t.status!=="completed") // only tasks and that are not completed
+        .map((task) => findTaskParents(task.id, planTasks));
+
+    // get memories, based on parentStrings
+    const taskEmbeddings = taskParentStrings && await embeddingsCache.fetchBatch(
+        ctx,
+        taskParentStrings,
+      );
+
+    const memories= taskEmbeddings && await asyncMap(
+        taskEmbeddings.embeddings, 
+        async (embedding) => {
+            const taskMemories = await memory.searchMemories(ctx, playerDescription.playerId as GameId<'players'>, embedding, 3);
+            return taskMemories;
+        }
+    );
+
+    if (memories?.length !== taskParentStrings?.length) {
+        throw new Error('Mismatch between memories and taskParentStrings');
+    }
+
+    const memoriesByTask = taskParentStrings && memories && taskParentStrings.map((task, i) => `Relevant memories related to task in plan : ${task}\n ${memories[i].map((m) => m.description).join('\n')}`);
 
     const newPlanId = await ctx.runMutation(
         selfInternal.createPlan,
@@ -108,8 +109,9 @@ export async function reflectOnPlan(
         playerDescription, 
         agentDescription, 
         xmlPlan, 
-        messages,
-        authors
+        conversationHistory,
+        otherAgent,
+        memoriesByTask
     }
 
     const tasks : SerializedTask[] = await generateTasks(args);
@@ -125,6 +127,26 @@ export async function reflectOnPlan(
     return newSerializedPlan
 }
 
+export function findTaskParents(id: Id<'tasks'>, planTasks : SerializedTask []){
+    const allTasks = parseMap(planTasks, Task, (t) => t.id);
+    let parentString = '';
+    const targetTask = allTasks.get(id);
+    if (!targetTask) {
+        return parentString;
+    }
+    parentString += targetTask.description;
+    let parentId = targetTask.parentTaskId;
+    while (parentId) {
+        const parentTask = allTasks.get(parentId);
+        if (!parentTask) {
+            break;
+        }
+        parentString += " > subtask : " + parentTask.description;
+        parentId = parentTask.parentTaskId;
+    }
+    return parentString;
+} 
+
 export const loadData = internalQuery({
     args: {
         worldId: v.id('worlds'),
@@ -136,11 +158,11 @@ export const loadData = internalQuery({
           throw new Error(`World ${args.worldId} not found`);
         }
         const teams = world.teams;
-        const player = world.agents.find((p) => p.id === args.agentId);
-        if (!player) {
+        const agent = world.agents.find((p) => p.id === args.agentId);
+        if (!agent) {
             throw new Error(`Agent ${args.agentId} not found`);
         }
-        const playerId = player.id;
+        const playerId = agent.playerId;
         const playerDescription = await ctx.db
             .query('playerDescriptions')
             .withIndex('worldId', (q) => q.eq('worldId', args.worldId).eq('playerId', playerId))

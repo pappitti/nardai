@@ -2,12 +2,15 @@ import { v } from 'convex/values';
 import { Id } from '../_generated/dataModel';
 import { ActionCtx, internalQuery } from '../_generated/server';
 import { LLMMessage, chatCompletion } from '../util/llm';
+import { asyncMap } from '../util/asyncMap';
 import * as memory from './memory';
-import { SerializedPlan } from '../aiTown/plan';
+import { SerializedPlan, findTaskParents} from '../aiTown/plan';
+import { SerializedPlayer } from '../aiTown/player';
 import { api, internal } from '../_generated/api';
 import * as embeddingsCache from './embeddingsCache';
 import { GameId, conversationId, playerId } from '../aiTown/ids';
 import { NUM_MEMORIES_TO_SEARCH } from '../constants';
+import { Game } from '../aiTown/game';
 
 const selfInternal = internal.agent.conversation;
 
@@ -47,6 +50,9 @@ export async function startConversationMessage(
     `You just started a conversation with ${otherPlayer.name}.`,
   ];
   prompt.push(...agentPrompts(otherPlayer, agent, otherAgent ?? null));
+  if (agent?.plan) {
+    prompt.push(await planPrompt(ctx, otherPlayer, agent, otherAgent ?? null))
+  }
   prompt.push(...previousConversationPrompt(otherPlayer, lastConversation));
   prompt.push(...relatedMemoriesPrompt(memories));
   if (memoryWithOtherPlayer) {
@@ -101,6 +107,9 @@ export async function continueConversationMessage(
     `The conversation started at ${started.toLocaleString()}. It's now ${now.toLocaleString()}.`,
   ];
   prompt.push(...agentPrompts(otherPlayer, agent, otherAgent ?? null));
+  if (agent?.plan) {
+    prompt.push(await planPrompt(ctx, otherPlayer, agent, otherAgent ?? null))
+  }
   prompt.push(...relatedMemoriesPrompt(memories));
   prompt.push(
     `Below is the current chat history between you and ${otherPlayer.name}.`,
@@ -191,12 +200,12 @@ export function systemPrompt(
     }
     return {
       role: 'system',
-      content: `You work in an Asset Management firm called "Nard AI" where you are part of the ${agent.teamType}. Your name is ${player.name}.\n Here is a brief about what your team's duties and objectives: ${agent.teamDescription}\n Here is a brief about you and your personality: ${agent.identity}.\n As part of your day to day job, you have to interact with other members of the firm. You speak English with them and generally talk in a polished manner but you can adapt your language to the person you talk to (for example, you use a more familiar language with members of your team or with colleagues with a same level of seniority). As part of your duties within the ${agent.teamType}, you make plans and you take actions but you also have your own agenda : ${agent.agenda}\n`
+      content: `You work in an Asset Management firm called "Nard AI" where you are part of the ${agent.teamType}. Your name is ${player.name}.\n Here is a brief about what your team's duties and objectives: ${agent.teamDescription}\n Here is a brief about you and your personality: ${agent.identity}.\n As part of your day-to-day job, you have to interact with other members of the firm. You speak English with them and generally talk in a polished manner but you can adapt your language to the person you talk to (for example, you use a more familiar language with members of your team or with colleagues with a same level of seniority). As part of your duties within the ${agent.teamType}, you make plans and you take actions but you also have your own agenda : ${agent.agenda}\n`
     };
 }
 
 function agentPrompts( // adding teams here
-  otherPlayer: { name: string },
+  otherPlayer: {name: string},
   agent: { 
     identity: string; 
     plan?: SerializedPlan | null; 
@@ -215,36 +224,103 @@ function agentPrompts( // adding teams here
   const prompt = [];
 
   if (otherAgent) {
-    const otherAgentId= otherAgent.id
     const otherAgentTeam = otherAgent.teamType;
     const otherAgentTeamDescription = otherAgent.teamDescription;
-    const otherAgentTeamId = otherAgent.teamId;
     
     prompt.push(`${otherPlayer.name} is part of the ${otherAgentTeam}.\n About ${otherPlayer.name}'s team: ${otherAgentTeamDescription}\n About ${otherPlayer.name}: ${otherAgent.identity}.`);
 
+  };
+
+  return prompt;
+}
+
+async function planPrompt(
+  ctx: ActionCtx,
+  otherPlayer: { name: string, id: string },
+  agent: { 
+    identity: string; 
+    plan?: SerializedPlan | null; 
+    teamType:string; 
+    teamDescription: string; 
+  } | null,
+  otherAgent: {
+    id : string; 
+    identity: string;
+    teamType:string; 
+    teamDescription: string ;
+    teamId: string; 
+  } | null,
+) {
+  const prompt = [];
+
+  if (otherAgent) {
+    const otherAgentTeam = otherAgent.teamType;
+
     if (agent?.plan) {
-      const tasksInvolvingOtherAgent = agent.plan.tasks?.filter((task) => task.requiredAgents?.includes(otherAgentId));
-      const tasksInvolvingOtherAgentTeam = agent.plan.tasks?.filter((task) => task.requiredTeams?.includes(otherAgentTeamId) && !task.requiredAgents?.includes(otherAgentId)); // last condition to avoid duplicates
+      const tasksInvolvingOtherAgent = agent.plan.tasks?.filter((task) => task.requiredAgents?.includes(otherPlayer.name) && task.status!=='completed');
+      const tasksInvolvingOtherAgentTeam = agent.plan.tasks?.filter((task) => task.requiredTeams?.includes(otherAgentTeam) && task.status!=='completed' && !task.requiredAgents?.includes(otherPlayer.name)); // last condition to avoid duplicates
 
       if (tasksInvolvingOtherAgent && tasksInvolvingOtherAgent.length > 0) {
         prompt.push(`As part of your plan, you intended to talk to ${otherPlayer.name} regarding the following :`);
-        for (const task of tasksInvolvingOtherAgent) {
-          prompt.push(` - ${task.description}`);
+
+        const taskParentStrings = tasksInvolvingOtherAgent.map((task) => findTaskParents(task.id, agent.plan!.tasks!));
+
+        const taskEmbeddings = taskParentStrings && await embeddingsCache.fetchBatch(
+          ctx,
+          taskParentStrings,
+        );
+  
+        const memories= taskEmbeddings && await asyncMap(
+            taskEmbeddings.embeddings, 
+            async (embedding) => {
+                const taskMemories = await memory.searchMemories(ctx, otherPlayer.id as GameId<'players'>, embedding, 3);
+                return taskMemories;
+            }
+        );
+    
+        if (memories?.length !== taskParentStrings?.length) {
+            throw new Error('Mismatch between memories and taskParentStrings');
         }
+    
+        const memoriesByTask = taskParentStrings && memories && taskParentStrings.map((task, i) => `Relevant memories related to task in plan : ${task}\n ${memories[i].map((m) => m.description).join('\n')}`);
+
+        prompt.push(memoriesByTask.join('\n'));
+
         prompt.push(`\n`);
       }
       
       if (tasksInvolvingOtherAgentTeam && tasksInvolvingOtherAgentTeam.length > 0) {
         prompt.push(`As part of your plan, you intended to talk to a memnber of the ${otherAgentTeam} regarding the following :`);
-        for (const task of tasksInvolvingOtherAgentTeam) {
-          prompt.push(` - ${task.description}`);
+        
+        const taskParentStrings = tasksInvolvingOtherAgentTeam.map((task) => findTaskParents(task.id, agent.plan!.tasks!));
+
+        const taskEmbeddings = taskParentStrings && await embeddingsCache.fetchBatch(
+          ctx,
+          taskParentStrings,
+        );
+  
+        const memories= taskEmbeddings && await asyncMap(
+            taskEmbeddings.embeddings, 
+            async (embedding) => {
+                const taskMemories = await memory.searchMemories(ctx, otherPlayer.id as GameId<'players'>, embedding, 3);
+                return taskMemories;
+            }
+        );
+    
+        if (memories?.length !== taskParentStrings?.length) {
+            throw new Error('Mismatch between memories and taskParentStrings');
         }
+    
+        const memoriesByTask = taskParentStrings && memories && taskParentStrings.map((task, i) => `Relevant memories related to task in plan : ${task}\n ${memories[i].map((m) => m.description).join('\n')}`);
+
+        prompt.push(memoriesByTask.join('\n'));
+
         prompt.push(`\n`);
       };
     };
-  };
+  }
 
-  return prompt;
+  return prompt.join('\n');
 }
 
 function previousConversationPrompt(

@@ -6,7 +6,9 @@ import { LLMMessage, chatCompletion, fetchEmbedding } from '../util/llm';
 import { asyncMap } from '../util/asyncMap';
 import { GameId, agentId, conversationId, playerId } from '../aiTown/ids';
 import { SerializedPlayer } from '../aiTown/player';
+import { reflectOnPlan } from '../aiTown/plan';
 import { memoryFields } from './schema';
+import {xmlTasks} from './planning';
 
 // How long to wait before updating a memory's last access time.
 export const MEMORY_ACCESS_THROTTLE = 300_000; // In ms
@@ -27,6 +29,7 @@ export async function rememberConversation(
   agentId: GameId<'agents'>,
   playerId: GameId<'players'>,
   conversationId: GameId<'conversations'>,
+  planId: Id<'plans'> | undefined,
 ) {
   const data = await ctx.runQuery(selfInternal.loadConversation, {
     worldId,
@@ -39,28 +42,64 @@ export async function rememberConversation(
     return;
   }
 
+  const planTasks = planId && await ctx.runQuery(internal.aiTown.plan.getPlan, {
+    worldId,
+    planId
+  });
+
   const llmMessages: LLMMessage[] = [
     {
       role: 'user',
       // take into account the plan to assess the conversation. highlight if you learned something that could be helpful in context of your plan.
-      content: `You are ${player.name}, and you just finished a conversation with ${otherPlayer.name}. I would
-      like you to summarize the conversation from ${player.name}'s perspective, using first-person pronouns like
-      "I," and add if you liked or disliked this interaction.`,
+      content: `You are ${player.name}, and you just finished a conversation with ${otherPlayer.name}. I would like you to summarize the conversation from ${player.name}'s perspective, using first-person pronouns like "I," and add what information you learnt ${planTasks?", and if this interaction could be helpful in the context of your current plan. if the conversation is helpful to a certain task, use the full task description to refer to it, do not use the task id.":""}.`,
     },
   ];
+
+  if (planTasks) {
+        llmMessages[0].content += ` Your current plan is detail below in xml format with a nested structure for each task : <task id="[unique_id]" depth="[depth_number]">
+        <description>[task_description]</description>
+        <status>["TODO" | "completed" | "inProgress"]</status>
+        <!-- if tasks need to be completed in a certain order, include the position in the sequence -->
+        <nthChild>[nth_child]</nthChild>    
+        <!-- Optional elements below -->
+        <keyTakeaways>[key_takeaways]</keyTakeaways>
+        <startTime>[start_time]</startTime>
+        <finishBefore>[finish_before_time]</finishBefore>
+        <requiredTeams>
+          <team>[team_name]</team>
+          <!-- Add more team tags as needed -->
+        </requiredTeams>
+        <requiredAgents>
+          <agent>[agent_name]</agent>
+          <!-- Add more agent tags as needed -->
+        </requiredAgents>
+        <tasks>
+        <!-- Nested tasks would go here -->
+        </tasks>
+      </task>
+      
+      current plan : 
+      ${xmlTasks(planTasks)}`;
+  };
+
   const authors = new Set<GameId<'players'>>();
+  llmMessages[0].content += `Conversation history follows:`;
+  let conversationHistory = '';
+
   for (const message of messages) {
     const author = message.author === player.id ? player : otherPlayer;
     authors.add(author.id as GameId<'players'>);
     const recipient = message.author === player.id ? otherPlayer : player;
-    llmMessages.push({
-      role: 'user',
-      content: `${author.name} to ${recipient.name}: ${message.text}`,
-    });
+    conversationHistory += `\n${author.name} to ${recipient.name}: ${message.text}`;
   }
-  // reflect on Plan paasing te messages and the set of author NAMES
-  // add system prompt and change the role to assistant for the repsonse?
-  llmMessages.push({ role: 'user', content: 'Summary:' });
+
+  llmMessages.push({
+    role: 'user',
+    content: conversationHistory,
+  });
+
+  // add system prompt and change the role to assistant for the response?
+  llmMessages.push({ role: 'assistant', content: 'Summary:' });
   const { content } = await chatCompletion({
     messages: llmMessages,
     max_tokens: 500,
@@ -85,7 +124,20 @@ export async function rememberConversation(
     embedding,
   });
   await reflectOnMemories(ctx, worldId, playerId);
-  return description;
+
+  const conversationPlanInput = conversationHistory + "\n This is an initial summary of the conversation and a primary analysis about how it may affect your plan:" + content;
+  
+  const newPlan = await reflectOnPlan(
+    ctx, 
+    worldId, 
+    agentId, 
+    Date.now(), 
+    planId, 
+    conversationPlanInput, 
+    otherPlayer.name
+  );
+
+  return {description, newPlan};
 }
 
 export const loadConversation = internalQuery({
@@ -159,6 +211,7 @@ export const loadConversation = internalQuery({
 });
 
 // change searchMemories to choose between player memories and plan memories
+// can use fetchbatch (cacheEmbeddings) for plan descriptions
 
 export async function searchMemories(
   ctx: ActionCtx,
@@ -253,7 +306,7 @@ async function calculateImportance(description: string) {
     messages: [
       {
         role: 'user',
-        content: `On the scale of 0 to 9, where 0 is purely mundane (e.g., brushing teeth, making bed) and 9 is extremely poignant (e.g., a break up, college acceptance), rate the likely poignancy of the following piece of memory.
+        content: `On the scale of 0 to 9, where 0 is purely mundane (e.g., soft-talk, high level updates, nothing helpful to your plans or objectives) and 9 is extremely critical (e.g., contains information that us necessary to complete a task), rate the likely criticality of the following piece of memory.
       Memory: ${description}
       Answer on a scale of 0 to 9. Respond with number only, e.g. "5"`,
       },
@@ -327,7 +380,7 @@ export const insertReflectionMemories = internalMutation({
   },
 });
 
-async function reflectOnMemories(
+export async function reflectOnMemories(
   ctx: ActionCtx,
   worldId: Id<'worlds'>,
   playerId: GameId<'players'>,
