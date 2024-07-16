@@ -123,7 +123,7 @@ export class Agent {
           .map((p) => p.serialize()),
         agent: this.serialize(),
         map: game.worldMap.serialize(),
-        agentDescription : agentDescription ?? null,
+        agentDescription : agentDescription?.serialize(),
         //teamDescription: teamDescription?.description ?? null,
       });
       return;

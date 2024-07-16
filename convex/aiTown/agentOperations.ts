@@ -126,7 +126,7 @@ export const agentDoSomething = internalAction({
     map: v.object(serializedWorldMap),
     otherFreePlayers: v.array(v.object(serializedPlayer)),
     operationId: v.string(),
-    agentDescription: v.union(v.object(serializedAgentDescription),v.null()), 
+    agentDescription: v.optional(v.object(serializedAgentDescription)), 
     //name: v.union(v.string(), v.null()),
     //teamDescription: v.union(v.string(), v.null()),
   },
