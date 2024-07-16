@@ -5,7 +5,7 @@ export const LLM_CONFIG = {
    */
   ollama: true,
   url: 'http://127.0.0.1:11434',
-  chatModel: 'adrienbrault/nous-hermes2theta-llama3-8b:q5_K_M' as const,
+  chatModel: 'llama3:instruct' as const,
   embeddingModel: 'mxbai-embed-large',
   embeddingDimension: 1024,
   stopWords: [],

@@ -27,14 +27,14 @@ export type SerializedPlan = ObjectType<typeof serializedPlan>;
 export class Plan {
     id: Id<'plans'>;
     created: number;
-    tasks?: Map<Id<'tasks'>, Task>;
+    tasks?: Map<string, Task>;
 
     constructor(serialized: SerializedPlan) {
         const { id,  created, tasks } = serialized;
         this.id = id;
         this.created = created;
         if (tasks) {
-            this.tasks = parseMap(tasks, Task, (t) => t.id);
+            this.tasks = parseMap(tasks, Task, (t) => t.taskId);
         }
     };
 
@@ -60,7 +60,7 @@ export async function reflectOnPlan(
     otherAgent?: string,
   ) {
 
-    const {teams, playerDescription, agentDescription} = await ctx.runQuery(selfInternal.loadData, {
+    const {teams, allPlayersNames, playerDescription, agentDescription} = await ctx.runQuery(selfInternal.loadData, {
         worldId,
         agentId
       });
@@ -77,9 +77,9 @@ export async function reflectOnPlan(
     // To give a better context to each task, we reconstruct a string with its parents up to the root
     const taskParentStrings= planTasks && planTasks
         .filter((t)=> 
-            t.id.split('.').length===3 // ids are of the form "1.2.3" with one index for each level
+            t.taskId.split('.').length===3 // ids are of the form "1.2.3" with one index for each level
             && t.status!=="completed") // only tasks and that are not completed
-        .map((task) => findTaskParents(task.id, planTasks));
+        .map((task) => findTaskParents(task.taskId, planTasks));
 
     // get memories, based on parentStrings
     const taskEmbeddings = taskParentStrings && await embeddingsCache.fetchBatch(
@@ -107,7 +107,8 @@ export async function reflectOnPlan(
     );
 
     const args={
-        teams, 
+        teams,
+        allPlayersNames, 
         playerDescription, 
         agentDescription, 
         xmlPlan, 
@@ -116,9 +117,14 @@ export async function reflectOnPlan(
         memoriesByTask
     }
 
-    const tasks : SerializedTask[] = await generateTasks(args);
+    const tasks : SerializedTask[] | undefined = await generateTasks(args);
 
-    await ctx.runMutation(internal.aiTown.task.insertTasks, {worldId, planId: newPlanId, tasks});
+    if (tasks){
+        for (const task of tasks) {
+            task.planId = newPlanId;
+        }
+        await ctx.runMutation(internal.aiTown.task.insertTasks, {worldId, tasks});
+    }
 
     const newSerializedPlan = {
         id: newPlanId,
@@ -126,13 +132,15 @@ export async function reflectOnPlan(
         tasks
     };
 
+    console.log(newSerializedPlan);
+
     return newSerializedPlan
 }
 
-export function findTaskParents(id: Id<'tasks'>, planTasks : SerializedTask []){
-    const allTasks = parseMap(planTasks, Task, (t) => t.id);
+export function findTaskParents(taskId: string, planTasks : SerializedTask []){
+    const allTasks = parseMap(planTasks, Task, (t) => t.taskId);
     let parentString = '';
-    const targetTask = allTasks.get(id);
+    const targetTask = allTasks.get(taskId);
     if (!targetTask) {
         return parentString;
     }
@@ -160,15 +168,18 @@ export const loadData = internalQuery({
           throw new Error(`World ${args.worldId} not found`);
         }
         const teams = world.teams;
+
         const agent = world.agents.find((p) => p.id === args.agentId);
         if (!agent) {
             throw new Error(`Agent ${args.agentId} not found`);
         }
         const playerId = agent.playerId;
-        const playerDescription = await ctx.db
+        const PlayerDescriptions = await ctx.db
             .query('playerDescriptions')
-            .withIndex('worldId', (q) => q.eq('worldId', args.worldId).eq('playerId', playerId))
-            .first();
+            .filter((q) => q.eq(q.field("worldId"), args.worldId))
+            .collect();
+        const allPlayersNames = PlayerDescriptions.map((p) => p.name);
+        const playerDescription = PlayerDescriptions.find((p) => p.playerId === playerId);
         if (!playerDescription) {
             throw new Error(`Player description for ${playerId} not found`);
         }
@@ -180,7 +191,7 @@ export const loadData = internalQuery({
             throw new Error(`Agent description for ${args.agentId} not found`);
         }
 
-      return {teams, playerDescription, agentDescription};
+      return {teams, allPlayersNames, playerDescription, agentDescription};
     }
 })
 

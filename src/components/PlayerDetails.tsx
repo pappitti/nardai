@@ -1,3 +1,4 @@
+import React, { useEffect, useState } from 'react';
 import { useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { Id } from '../../convex/_generated/dataModel';
@@ -7,7 +8,6 @@ import { SelectElement } from './Player';
 import { Messages } from './Messages';
 import { toastOnError } from '../toasts';
 import { useSendInput } from '../hooks/sendInput';
-import { Player } from '../../convex/aiTown/player';
 import { GameId } from '../../convex/aiTown/ids';
 import { ServerGame } from '../hooks/serverGame';
 import Button from './buttons/Button.tsx';
@@ -29,6 +29,12 @@ export default function PlayerDetails({
   setShowConversations: (show:boolean)=>void; //added
   scrollViewRef: React.RefObject<HTMLDivElement>;
 }) {
+  const [showPlan, setShowPlan] = useState(false);
+
+  useEffect(() => {
+    setShowPlan(false);
+  }, [playerId]);
+
   const humanTokenIdentifier = useQuery(api.world.userStatus, { worldId });
 
   const players = [...game.world.players.values()];
@@ -51,6 +57,12 @@ export default function PlayerDetails({
   );
 
   const playerDescription = playerId && game.playerDescriptions.get(playerId);
+
+  const agents = [...game.world.agents.values()]
+  const playerAgent = agents.find((a) => a.playerId === player?.id);
+  const agentPlan = playerAgent?.plan?.serialize();
+
+  agentPlan && console.log(playerDescription?.name, agentPlan);
 
   const startConversation = useSendInput(engineId, 'startConversation');
   const acceptInvite = useSendInput(engineId, 'acceptInvite');
@@ -265,6 +277,41 @@ export default function PlayerDetails({
           />
         </>
       )}
+      {/*WIP : ability to show plans*/}
+      {!playerConversation && !previousConversation && agentPlan && (
+        <div className="relative flex flex-col w-full">
+        <a
+          className={
+            'sticky mt-6 option-button cyan-button text-white shadow-solid text-base cursor-pointer pointer-events-auto'
+          }
+          onClick={() => setShowPlan(prevState => !prevState)}
+        >
+          <div className="h-full text-center">
+            <span>Show plan</span>
+          </div>
+        </a>
+        {showPlan && agentPlan && (
+          <div className="desc my-6">
+            <div className="text-base text-slate-400 sm:text-sm">
+              {agentPlan.tasks?.map((task) => 
+                <div key={task.taskId} 
+                  style={{ 
+                    marginTop: (task.taskId.split('.').length === 1 && task.taskId!='0') ? '1rem' : '0.5rem', 
+                    paddingLeft: `${(task.taskId.split('.').length-1) * 10}px` }}
+                >
+                  <div className="text-slate-600 font-bold">
+                    {task.taskId}:{task.description}
+                  </div>
+                  <div>status : {task.status}</div>
+                  <div>required : {[...(task.requiredAgents||[]),...(task.requiredTeams||[])].join(', ')}</div>
+                </div>
+                )
+              }
+            </div>
+          </div>
+        )}
+        </div>)
+      }
     </>
   );
 }

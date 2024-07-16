@@ -77,7 +77,6 @@ export default function Game() {
             <div className="h-[6px] bg-red-600 mx-[40px] shrink-0"></div>
             {searchedString &&
               <div className="w-full grow">
-                {/* TODO for now, same as ConversationList*/}
                 <KeywordTracker
                   worldId={worldId}
                   engineId={engineId}

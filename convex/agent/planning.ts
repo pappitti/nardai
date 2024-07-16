@@ -1,6 +1,6 @@
 import {SerializedTask} from '../aiTown/task';
 
-export function xmlTasks(tasks: SerializedTask[]): string {
+export function xmlTasks(tasks: (SerializedTask & { subtasks?: string })[]): string {
     if (!tasks || tasks.length===0) return '';
 
     // Helper function to escape special XML characters
@@ -20,15 +20,15 @@ export function xmlTasks(tasks: SerializedTask[]): string {
     const rootTasks: SerializedTask[] = [];
 
     for (const task of tasks) {
-        taskMap.set(task.id, task);
+        taskMap.set(task.taskId, task);
         if (!task.parentTaskId) {
           rootTasks.push(task);
         }
       }
 
     // Helper function to recursively build XML for a task and its children
-    const buildTaskXml = (task: SerializedTask, depth: number, indent: string = ''): string => {
-        let xml = `${indent}<task id="${task.id}" depth="${depth}">\n`;
+    const buildTaskXml = (task: (SerializedTask& { subtasks?: string }), indent: string = ''): string => {
+        let xml = `${indent}<task id="${task.taskId}" depth="${task.depth}">\n`;
         xml += `${indent}  <description>${escapeXml(task.description)}</description>\n`;
         xml += `${indent}  <status>${task.status}</status>\n`;
         if (task.keyTakeaways) {
@@ -43,26 +43,32 @@ export function xmlTasks(tasks: SerializedTask[]): string {
         if (task.requiredTeams) {
             xml += `${indent}  <requiredTeams>\n`;
             for (const team of task.requiredTeams) {
-            xml += `${indent}    <team>${team}</team>\n`;
+                xml += `${indent}    <team>${team}</team>\n`;
             }
             xml += `${indent}  </requiredTeams>\n`;
         }
         if (task.requiredAgents) {
             xml += `${indent}  <requiredAgents>\n`;
             for (const agent of task.requiredAgents) {
-            xml += `${indent}    <agent>${agent}</agent>\n`;
+                xml += `${indent}    <agent>${agent}</agent>\n`;
             }
             xml += `${indent}  </requiredAgents>\n`;
         }
         
         // Find and process child tasks
-        const childTasks = tasks.filter(t => t.parentTaskId === task.id);
-        if (childTasks.length === 0) {
-            xml += `${indent}  <subTasks>\n`;
+        const childTasks = tasks.filter(t => t.parentTaskId === task.taskId);
+        if (childTasks.length !== 0) {
+            xml += `${indent}  <tasks>\n`;
             for (const childTask of childTasks) {
-                xml += buildTaskXml(childTask, depth + 1, indent + '  ');
+                xml += buildTaskXml(childTask, indent);
             }
-            xml += `${indent}  </subTasks>\n`;
+            xml += `${indent}  </tasks>\n`;
+        }
+        else if (task.subtasks) {
+            xml += `${indent}  <tasks>\n`;
+            xml += `${indent}    ${task.subtasks}`;
+            xml += `${indent}  </tasks>\n`;
+
         }
         
         xml += `${indent}</task>\n`;
@@ -72,7 +78,7 @@ export function xmlTasks(tasks: SerializedTask[]): string {
      // Build the final XML
     let xmlTree = '<tasks>\n';
     for (const rootTask of rootTasks) {
-        xmlTree += buildTaskXml(rootTask, 0, '  ');
+        xmlTree += buildTaskXml(rootTask, '  ');
     }
     xmlTree += '</tasks>';
 

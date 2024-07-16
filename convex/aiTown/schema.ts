@@ -89,16 +89,17 @@ export const aiTownTables = {
   tasks: defineTable({
     worldId: v.id('worlds'),
     planId: v.id('plans'),
-    id : v.id('tasks'),
+    taskId : v.string(),
     description: v.string(),
-    parentTaskId: v.optional(v.id('tasks')),
+    parentTaskId: v.optional(v.string()), // could not find how to properly reference the taskId so I'll validate it elsewhere it before inserting
+    depth: v.number(), 
     nthChild: v.optional(v.number()),
     status: v.union(v.literal('TODO'), v.literal('completed'), v.literal('inProgress')),
     keyTakeaways: v.optional(v.string()),
     startTime: v.optional(v.number()),
     finishBefore: v.optional(v.number()),
-    requiredTeams: v.optional(v.array(teamId)),
-    requiredAgents: v.optional(v.array(agentId)),
+    requiredTeams: v.optional(v.array(v.string())), //validation needs to take place elsewhere
+    requiredAgents: v.optional(v.array(v.string())), //validation needs to take place elsewhere
   })
     .index('plan', ['worldId', 'planId'])
     .index('subTasks', ['worldId', 'planId', 'parentTaskId']),

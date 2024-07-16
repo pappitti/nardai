@@ -263,7 +263,7 @@ async function planPrompt(
       if (tasksInvolvingOtherAgent && tasksInvolvingOtherAgent.length > 0) {
         prompt.push(`As part of your plan, you intended to talk to ${otherPlayer.name} regarding the following :`);
 
-        const taskParentStrings = tasksInvolvingOtherAgent.map((task) => findTaskParents(task.id, agent.plan!.tasks!));
+        const taskParentStrings = tasksInvolvingOtherAgent.map((task) => findTaskParents(task.taskId, agent.plan!.tasks!));
 
         const taskEmbeddings = taskParentStrings && await embeddingsCache.fetchBatch(
           ctx,
@@ -292,7 +292,7 @@ async function planPrompt(
       if (tasksInvolvingOtherAgentTeam && tasksInvolvingOtherAgentTeam.length > 0) {
         prompt.push(`As part of your plan, you intended to talk to a memnber of the ${otherAgentTeam} regarding the following :`);
         
-        const taskParentStrings = tasksInvolvingOtherAgentTeam.map((task) => findTaskParents(task.id, agent.plan!.tasks!));
+        const taskParentStrings = tasksInvolvingOtherAgentTeam.map((task) => findTaskParents(task.taskId, agent.plan!.tasks!));
 
         const taskEmbeddings = taskParentStrings && await embeddingsCache.fetchBatch(
           ctx,
