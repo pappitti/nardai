@@ -72,7 +72,9 @@ export async function reflectOnPlan(
         xmlPlan = xmlTasks(planTasks);
     }
 
-    // TODO : everything in a if statement ? if (planTasks) { ... }
+    // TODO : everything below in a if statement ? if (planTasks) { ... }
+
+    // To give a better context to each task, we reconstruct a string with its parents up to the root
     const taskParentStrings= planTasks && planTasks
         .filter((t)=> 
             t.id.split('.').length===3 // ids are of the form "1.2.3" with one index for each level

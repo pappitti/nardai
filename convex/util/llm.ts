@@ -8,7 +8,7 @@ export const LLM_CONFIG = {
   chatModel: 'adrienbrault/nous-hermes2theta-llama3-8b:q5_K_M' as const,
   embeddingModel: 'mxbai-embed-large',
   embeddingDimension: 1024,
-  stopWords: [],//['<|eot_id|>','<|im_end|>']
+  stopWords: [],
   //hermes2llama38b, llama3:8b, adrienbrault/nous-hermes2theta-llama3-8b:q5_K_M, llama3:instruct, mistral:v0.3
   // chatModel: 'llama3' as const, // Default from AiTown
   // embeddingModel: 'llama3',
@@ -146,7 +146,8 @@ export async function chatCompletion(
   if (body.model in chatTemplates) {
     const { formattedMessages, templateStopWords} = chatTemplates[body.model as keyof typeof chatTemplates](body.messages);
     body.messages = [{ content: formattedMessages, role: 'user' }];
-    stopWords.push(...templateStopWords);
+    stopWords.push(...templateStopWords)
+    body.stop = [...stopWords];
     body.raw = true; // override the template in OLLAMA (I can't be 100% sure it actually works when using the OpenAI API but output looks good so I keep it)
   }
   console.log(body);

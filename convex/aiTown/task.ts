@@ -85,13 +85,14 @@ export async function generateTasks(
         xmlPlan?: string|undefined, 
         conversationHistory?: string,
         otherAgent?: string, 
-        level?: number, 
+        //level?: number, 
         memoriesByTask? : string [] 
     }
   ) {
 
-    const {xmlPlan, conversationHistory, level, otherAgent, memoriesByTask} = args;
+    const {xmlPlan, conversationHistory, /*level,*/ otherAgent, memoriesByTask} = args;
     const teamDescription = args.teams.find((t) => t.name === args.agentDescription?.teamType);
+    const level = 0
 
     const tasks = await getSubtasks(
         args.teams, 
@@ -113,7 +114,7 @@ async function getSubtasks(
     agentDescription:SerializedAgentDescription,
     playerDescription:SerializedPlayerDescription,
     teamDescription:string | undefined,
-    level: number | undefined,
+    level: number,
     xmlPlan: string | undefined,
     conversationHistory: string | undefined,
     otherAgent: string | undefined, 
@@ -124,27 +125,28 @@ async function getSubtasks(
     const systemPrompt : LLMMessage = {
         role: 'system',
         content: `You work in an Asset Management firm called "Nard AI" where you are part of the ${agentDescription?.teamType}. Your name is ${playerName}.\n Here is a brief about what your team's duties and objectives: ${teamDescription}\n As part of your duties the ${agentDescription?.teamType}, you make plans and you take actions but you also have your own agenda : ${agentDescription?.plan}. \n To structure your plan, you use the XML syntax which allows to nest subtasks within tasks.\n When generating an XML representation of tasks, please follow these guidelines:\n 1 - Each task should be enclosed in a <task> tag.\n 2 - apart from id and depth, attributes should be included as separate child elements within the <task> tag.\n 3 - some elements may be optional, only include optional elements if they have a value.\n 4 - after marking a task as completed, you can write your key takeaways between <keyTakeaways> tags.\n 5 - the response must be parseable as XML using DOMParser.\n 
-        Use the following structure for each task:<task id="[unique_id]" depth="[depth_number]">
-        <description>[task_description]</description>
-        <status>["TODO" | "completed" | "inProgress"]</status>
-        <!-- if tasks need to be completed in a certain order, include the position in the sequence -->
-        <nthChild>[nth_child]</nthChild>    
-        <!-- Optional elements below -->
-        <keyTakeaways>[key_takeaways]</keyTakeaways>
-        <startTime>[start_time]</startTime>
-        <finishBefore>[finish_before_time]</finishBefore>
-        <requiredTeams>
-          <team>[team_name]</team>
-          <!-- Add more team tags as needed -->
-        </requiredTeams>
-        <requiredAgents>
-          <agent>[agent_name]</agent>
-          <!-- Add more agent tags as needed -->
-        </requiredAgents>
-        <tasks>
-        <!-- Nested tasks would go here -->
-        </tasks>
-      </task>
+        Use the following structure for each task:
+        <task id="[unique_id]" depth="[depth_number]">
+            <description>[task_description]</description>
+            <status>["TODO" | "completed" | "inProgress"]</status>
+            <!-- if tasks need to be completed in a certain order, include the position in the sequence -->
+            <nthChild>[nth_child]</nthChild>    
+            <!-- Optional elements below -->
+            <keyTakeaways>[key_takeaways]</keyTakeaways>
+            <startTime>[start_time]</startTime>
+            <finishBefore>[finish_before_time]</finishBefore>
+            <requiredTeams>
+                <team>[team_name]</team>
+                <!-- Add more team tags as needed -->
+            </requiredTeams>
+            <requiredAgents>
+                 <agent>[agent_name]</agent>
+                <!-- Add more agent tags as needed -->
+            </requiredAgents>
+            <tasks>
+                <!-- Nested tasks would go here -->
+            </tasks>
+        </task>
       
       The list of teams in the company  are : ${teams.map((t) => `${t.name}: ${t.description}`).join('\n')}
 

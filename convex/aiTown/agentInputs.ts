@@ -177,6 +177,8 @@ export const agentInputs = {
           lastConversation: undefined,
           lastInviteAttempt: undefined,
           toRemember: undefined,
+          plan: undefined,
+          updatePlan: undefined,
         }),
       );
       game.agentDescriptions.set(
