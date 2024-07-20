@@ -22,7 +22,7 @@ function SearchComponent({setSearchedString}: {setSearchedString: Function}) {
     };
 
     return (
-        <div className="relative flex h-full items-center">
+        <div className="relative flex w-full justify-end items-center">
             <input
                 className="rounded-3xl bg-gray-200/30 px-4 placeholder:text-xs"
                 type="text"

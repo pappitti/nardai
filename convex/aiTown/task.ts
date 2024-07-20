@@ -24,7 +24,8 @@ export const serializedTask = {
     startTime: v.optional(v.number()),
     finishBefore: v.optional(v.number()),
     requiredTeams: v.optional(v.array(v.string())), 
-    requiredAgents: v.optional(v.array(v.string())), 
+    requiredAgents: v.optional(v.array(v.string())),
+    subtasks: v.optional(v.string()) 
 };
 
 export type SerializedTask = ObjectType<typeof serializedTask>;
@@ -42,9 +43,10 @@ export class Task {
     finishBefore?: number;
     requiredTeams?: string[];
     requiredAgents?: string[];
+    subtasks?: string;
 
     constructor(serialized: SerializedTask) {
-        const { taskId, planId, description, parentTaskId, depth, nthChild, status, keyTakeaways, startTime, finishBefore, requiredTeams, requiredAgents} = serialized;
+        const { taskId, planId, description, parentTaskId, depth, nthChild, status, keyTakeaways, startTime, finishBefore, requiredTeams, requiredAgents, subtasks} = serialized;
         this.taskId = taskId;
         this.planId = planId;
         this.description = description;
@@ -55,8 +57,9 @@ export class Task {
         this.keyTakeaways = keyTakeaways;
         this.startTime = startTime;
         this.finishBefore = finishBefore;
-        this.requiredTeams = requiredTeams
-        this.requiredAgents = requiredAgents
+        this.requiredTeams = requiredTeams;
+        this.requiredAgents = requiredAgents;
+        this.subtasks = subtasks;
     };
 
     serialize(): SerializedTask {
@@ -73,6 +76,7 @@ export class Task {
             finishBefore: this.finishBefore,
             requiredTeams: this.requiredTeams,
             requiredAgents: this.requiredAgents,
+            subtasks: this.subtasks
         };
     };
 }
@@ -151,7 +155,7 @@ async function getSubtasks(
             </tasks>
         </task>
       
-      The list of teams in the company  are : ${teams.map((t) => `${t.name}: ${t.description}`).join('\n')}
+      The list of teams in the company is : ${teams.map((t) => `${t.name}: ${t.description}`).join('\n')}
 
       Example with optional elements and nesting:
       <tasks>

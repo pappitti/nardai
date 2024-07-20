@@ -20,7 +20,7 @@ import PoweredByConvex from './components/PoweredByConvex.tsx';
 export default function Home() {
   const [helpModalOpen, setHelpModalOpen] = useState(false);
   return (
-    <main className="relative flex min-h-screen flex-col items-center justify-between font-body game-background">
+    <main className="relative flex min-h-screen flex-col items-center justify-between font-body game-background min-w-[400px]">
       <PoweredByConvex />
 
       <ReactModal

@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import PixiGame from './PixiGame.tsx';
 import closeImg from '../../assets/close.svg';
+import interactImg from '../../assets/interact.svg';
+import Button from './buttons/Button.tsx';
 import { useElementSize } from 'usehooks-ts';
 import { Stage } from '@pixi/react';
 import { ConvexProvider, useConvex, useQuery } from 'convex/react';
 import PlayerDetails from './PlayerDetails.tsx';
 import CharacterList from './CharacterList.tsx';
 import ConversationList from './ConversationList.tsx';
-import SearchComponent from './searchBar.tsx';
-import KeywordTracker from './KeywordTracker.tsx';
+import ConvosAndPlansTracker from './PlansAndConversations.tsx'; 
 import { api } from '../../convex/_generated/api';
 import { useWorldHeartbeat } from '../hooks/useWorldHeartbeat.ts';
 import { useHistoricalTime } from '../hooks/useHistoricalTime.ts';
@@ -25,10 +26,23 @@ export default function Game() {
     id: GameId<'players'>;
   }>();
   const [showConversations, setShowConversations] = useState<boolean>(false);
-  const [searchedString, setSearchedString] = useState<string|undefined>(undefined);
+  const [showHistory, setShowHistory] = useState<boolean>(false);
+  const [gameWrapperSize, setGameWrapperSize] = useState<{ width: number; height: number }>({ width: 0 , height: 0});
+  const [gameWindowSize, setGameWindowSize] = useState<{ width: number; height: number }>({ width: 0 , height: 0});
 
   const [gameWrapperRef, { width, height }] = useElementSize();
-  const [gameWindowRef, {width :gameWindowWidth, height : gameWindowheight}] = useElementSize();
+  const [gameWindowRef, {width :gameWindowWidth, height : gameWindowheight}] = useElementSize(); //necessary?
+  useEffect(() => {
+    if (width && height) {
+      setGameWrapperSize({ width, height });
+    }
+  }, [width, height]);
+
+  useEffect(() => {
+    if (gameWindowWidth && gameWindowheight) {
+      setGameWindowSize({ width: gameWindowWidth, height: gameWindowheight });
+    }
+  }, [gameWindowWidth, gameWindowheight]);
 
   const worldStatus = useQuery(api.world.defaultWorldStatus);
   const worldId = worldStatus?.worldId;
@@ -43,10 +57,6 @@ export default function Game() {
   const { historicalTime, timeManager } = useHistoricalTime(worldState?.engine);
 
   const scrollViewRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    console.log('searchedString', searchedString);
-  }, [searchedString]);
 
   if (!worldId || !engineId || !game) {
     return null;
@@ -64,31 +74,37 @@ export default function Game() {
                 engineId={engineId}
                 game={game}
               />
-              <SearchComponent setSearchedString={setSearchedString}/>
-              <a
-                className="cursor-pointer shrink-0 pointer-events-auto"
-                onClick={() => setShowConversations(false)}
-              >
-                <h2 className="h-full flex p-5">
-                  <img className="w-4 h-4 sm:w-5 sm:h-5" src={closeImg} />
-                </h2>
-              </a>
+              <div className="relative flex flex-col p-5 gap-4 min-w-[209px]">
+                <div className="relative flex justify-between items-center">
+                  <div className="text-white">Back to map</div>
+                  <a
+                      className="cursor-pointer shrink-0 pointer-events-auto"
+                      onClick={() => setShowConversations(false)}
+                    >
+                      <h2 className="h-full flex">
+                        <img className="w-4 h-4 sm:w-5 sm:h-5" src={closeImg} />
+                      </h2>
+                  </a>
+                </div>
+                <Button className="text-base " imgUrl={interactImg} onClick={() => setShowHistory(prevState=>!prevState)}>
+                    {showHistory? "Hide history" : "Show history"}
+                </Button> 
+              </div>
             </div>
             <div className="h-[6px] bg-red-600 mx-[40px] shrink-0"></div>
-            {searchedString &&
-              <div className="w-full grow">
-                <KeywordTracker
+            {showHistory &&
+              <div className="relative w-full flex grow grow overflow-auto">
+                <ConvosAndPlansTracker
                   worldId={worldId}
                   engineId={engineId}
                   game={game}
-                  height={gameWindowheight}
-                  width={gameWindowWidth}
-                  keyword={searchedString}
+                  // height={gameWindowheight}
+                  // width={gameWindowWidth}
                 /> 
               </div>
           }
-            {!searchedString &&
-              <div className="w-full grow">
+            {!showHistory &&
+              <div className="relative w-full flex grow overflow-auto">
                 <ConversationList
                   worldId={worldId}
                   engineId={engineId}
@@ -103,7 +119,7 @@ export default function Game() {
         <div className="relative overflow-hidden bg-brown-900" ref={gameWrapperRef}>
           <div className="absolute inset-0">
             <div className="container">
-              <Stage width={width} height={height} options={{ backgroundColor: 0x7ab5ff }}>
+              <Stage width={gameWrapperSize.width} height={gameWrapperSize.height} options={{ backgroundColor: 0x7ab5ff }}>
                 {/* Re-propagate context because contexts are not shared between renderers.
 https://github.com/michalochman/react-pixi-fiber/issues/145#issuecomment-531549215 */}
                 <ConvexProvider client={convex}>

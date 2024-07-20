@@ -8,7 +8,7 @@ import { xmlTasks } from '../agent/planning';
 import * as embeddingsCache from '../agent/embeddingsCache';
 import * as memory from '../agent/memory';
 import { Task, serializedTask, SerializedTask, generateTasks } from './task';
-import { ActionCtx, internalMutation, internalQuery } from '../_generated/server';
+import { ActionCtx, internalMutation, internalQuery, query } from '../_generated/server';
 
 const selfInternal = internal.aiTown.plan; 
 
@@ -208,6 +208,20 @@ export const getPlan = internalQuery({
     }  
 });
 
+// I wanted to use the same function for both internal queries and normal queries, but I couldn't find a way to do it
+export const getPlanTasks = query({
+    args: {
+        worldId: v.id('worlds'),
+        planId: v.id('plans'),
+    },
+    handler: async (ctx, args) => {
+      const tasks = await ctx.db.query('tasks')
+        .withIndex('plan', (q)=>q.eq('worldId', args.worldId).eq('planId', args.planId))
+        .collect();
+      return tasks;
+    }  
+});
+
 export const createPlan = internalMutation({
     args: {
       worldId: v.id('worlds'),
@@ -221,6 +235,20 @@ export const createPlan = internalMutation({
         created: now,
       });
       return planId;
+    },
+  });
+  
+  export const listAllPlans = query({
+    args: {
+      worldId: v.id('worlds'),
+    },
+    handler: async (ctx, args) => {
+      const plans = await ctx.db
+        .query('plans')
+        .filter((q) => q.eq(q.field('worldId'),args.worldId))
+        .collect();
+        
+      return plans;
     },
   });
   

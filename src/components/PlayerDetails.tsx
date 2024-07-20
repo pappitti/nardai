@@ -11,6 +11,7 @@ import { useSendInput } from '../hooks/sendInput';
 import { GameId } from '../../convex/aiTown/ids';
 import { ServerGame } from '../hooks/serverGame';
 import Button from './buttons/Button.tsx';
+import { Plans } from './Plan.tsx';
 
 export default function PlayerDetails({
   worldId,
@@ -62,7 +63,7 @@ export default function PlayerDetails({
   const playerAgent = agents.find((a) => a.playerId === player?.id);
   const agentPlan = playerAgent?.plan?.serialize();
 
-  agentPlan && console.log(playerDescription?.name, agentPlan);
+  // agentPlan && console.log(playerDescription?.name, agentPlan);
 
   const startConversation = useSendInput(engineId, 'startConversation');
   const acceptInvite = useSendInput(engineId, 'acceptInvite');
@@ -291,24 +292,25 @@ export default function PlayerDetails({
           </div>
         </a>
         {showPlan && agentPlan && (
-          <div className="desc my-6">
-            <div className="text-base text-slate-400 sm:text-sm">
-              {agentPlan.tasks?.map((task) => 
-                <div key={task.taskId} 
-                  style={{ 
-                    marginTop: (task.taskId.split('.').length === 1 && task.taskId!='0') ? '1rem' : '0.5rem', 
-                    paddingLeft: `${(task.taskId.split('.').length-1) * 10}px` }}
-                >
-                  <div className="text-slate-600 font-bold">
-                    {task.taskId}:{task.description}
-                  </div>
-                  <div>status : {task.status}</div>
-                  <div>required : {[...(task.requiredAgents||[]),...(task.requiredTeams||[])].join(', ')}</div>
-                </div>
-                )
-              }
-            </div>
-          </div>
+          <Plans worldId={worldId} planId={agentPlan.id} planTasks={agentPlan.tasks}/>
+          // <div className="desc my-6">
+          //   <div className="text-base text-slate-400 sm:text-sm">
+          //     {agentPlan.tasks?.map((task) => 
+          //       <div key={task.taskId} 
+          //         style={{ 
+          //           marginTop: (task.taskId.split('.').length === 1 && task.taskId!='0') ? '1rem' : '0.5rem', 
+          //           paddingLeft: `${(task.taskId.split('.').length-1) * 10}px` }}
+          //       >
+          //         <div className="text-slate-600 font-bold">
+          //           {task.taskId}:{task.description}
+          //         </div>
+          //         <div>status : {task.status}</div>
+          //         <div>required : {[...(task.requiredAgents||[]),...(task.requiredTeams||[])].join(', ')}</div>
+          //       </div>
+          //       )
+          //     }
+          //   </div>
+          // </div>
         )}
         </div>)
       }

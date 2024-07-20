@@ -33,7 +33,7 @@ export const PLAYER_CONVERSATION_COOLDOWN = 60000;
 export const INVITE_ACCEPT_PROBABILITY = 0.8;
 
 // Probability that agent decides to reflect/work it plans.
-export const AGENT_MOTIVATION = 0.5;
+export const AGENT_MOTIVATION = 0.2;
 
 // Wait for 1m for invites to be accepted.
 export const INVITE_TIMEOUT = 60000;
