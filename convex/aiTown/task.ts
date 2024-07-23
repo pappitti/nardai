@@ -131,7 +131,7 @@ async function getSubtasks(
     const playerName = playerDescription.name;
     const systemPrompt : LLMMessage = {
         role: 'system',
-        content: `You work in an Asset Management firm called "Nard AI" where you are part of the ${agentDescription?.teamType}. Your name is ${playerName}.\n Here is a brief about what your team's duties and objectives: ${teamDescription}\n As part of your duties in the ${agentDescription?.teamType}, you make plans and you take actions but you also have your own agenda : ${agentDescription?.plan}. \n To structure your plan, you use the XML syntax which allows to nest subtasks within tasks.\n When generating an XML representation of tasks, please follow these guidelines:\n 1 - Each task should be enclosed in a <task> tag.\n 2 - apart from id and depth, attributes should be included as separate child elements within the <task> tag.\n 3 - some elements may be optional, only include optional elements if they have a value.\n 4 - after marking a task as completed, you can write your key takeaways between <keyTakeaways> tags.\n 5 - the response must be parseable as XML using fast-xml-parser.\n 
+        content: `You work in an Asset Management firm called "Nard AI" where you are part of the ${agentDescription?.teamType}. Your name is ${playerName}.\n Here is a brief about what your team's duties and objectives: ${teamDescription}\n As part of your duties in the ${agentDescription?.teamType}, you make plans and you take actions but you also have your own agenda : ${agentDescription?.plan}.\n To structure your plan, you use the XML syntax which allows to nest subtasks within tasks.\n When generating an XML representation of tasks, please follow these guidelines:\n 1 - Each task should be enclosed in a <task> tag.\n 2 - apart from id and depth, attributes should be included as separate child elements within the <task> tag.\n 3 - some elements may be optional, only include optional elements if they have a value.\n 4 - after marking a task as completed, you can write your key takeaways between <keyTakeaways> tags.\n 5 - the response must be parseable as XML using fast-xml-parser.\n 
         Use the following structure for each task:
         <task id="[unique_id]" depth="[depth_number]">
             <description>[task_description]</description>
@@ -155,7 +155,8 @@ async function getSubtasks(
             </tasks>
         </task>
       
-      The list of teams in the company is : ${teams.map((t) => `${t.name}: ${t.description}`).join('\n')}
+        The list of agents in the company is : ${allPlayersNames.join(', ')}
+        The list of teams in the company is : ${teams.map((t) => `${t.name}: ${t.description}`).join('\n')}
 
       Example with optional elements and nesting:
       <tasks>
@@ -170,7 +171,7 @@ async function getSubtasks(
             </requiredTeams>
             <tasks>
                 <task id="3" depth="1">
-                    <description>Ask Lucky to do a market mapping</description>
+                    <description>Ask Nard AI Lucky to do a market mapping</description>
                     <status>completed</status>
                     <keyTakeways>Lucky accepted the task and will come back to me within 24 hours so I can add the mapping in my presentation slides</keyTakeways>
                     <requiredAgents>
@@ -209,10 +210,10 @@ async function getSubtasks(
     }
     else {
         prompt.push(`You have already started to establish the following list of tasks taking into account your professional duties and your personal objectives : ${xmlPlan}`);
-        if (memoriesByTask) {
-            prompt.push(`Based on your past experiences, you have the following memories related to tasks in your existing plan :\n ${memoriesByTask.join('\n')}`);
-        }
         prompt.push(`You need to adjust or add subtasks for each task of depth ${depth}. You can only add a maximum of ${5-depth} subtasks for each task of depth ${depth}. Do not change to tasks if their depth is lower than ${depth}. You can mark as "completed" the tasks that you identify as redundant but you should mention the reason in keyTakeways. All subtasks of a parent task must be enclosed in a <tasks> tag`);
+        if (memoriesByTask && memoriesByTask.length > 0) {
+            prompt.push(`The following memories related to tasks in your existing plan, may contain useful information to update your plan :\n ${memoriesByTask.join('\n')}`);
+        }
     }
 
     prompt.push('Please generate a list of tasks following the xml format, ensuring proper nesting and including relevant optional elements where appropriate.','[no prose]')
@@ -302,6 +303,11 @@ function parseXMLTasks(xml: string) {
     }
 
     function parseTask (taskElement: any, parentChainId: string = '', index:number): any {
+        if (!taskElement.description?.["#text"]) {
+            console.error("Task missing description", taskElement);
+            return;
+        }
+        
         const task: any = {
             taskId: parentChainId
                 ? [parentChainId,index.toString()].join(".")
@@ -309,7 +315,7 @@ function parseXMLTasks(xml: string) {
             depth: parentChainId
                 ? parentChainId.split(".").length 
                 : 0, // old : parseInt(taskElement.getAttribute("depth") || "0"),
-            description: taskElement.description?.["#text"] || "",
+            description: taskElement.description?.["#text"] || "", // should never be an empty string given check above
             status: taskElement.status?.["#text"] || "",
             nthChild: index, //old : parseInt(taskElement.querySelector("nthChild")?.textContent || "0"),
             parentTaskId: parentChainId,
@@ -378,15 +384,14 @@ function flattenTasks(tasks: any[], depth:number): any[] {
     return tasks.reduce((acc: any[], task: any) => {
         acc.push(task);
         if (task.tasks) {
-
             // recursively flatten subtasks only up to the specified depth
             if (depth-1 >=0 ){
                 acc.push(...flattenTasks(task.tasks, depth-1));
-                delete task.tasks;  // then we can remove the 'tasks' property to avoid redundancy
             }
             else { // otherwise, keep the subtasks as a xml string
                 task.subtasks = xmlTasks(task.tasks);
             }
+            delete task.tasks;  // then we can remove the 'tasks' property to avoid redundancy
         }
         return acc;
     }, []);

@@ -82,8 +82,7 @@ export const aiTownTables = {
   // We do not create nested objects here, as the agent layer will be responsible for managing
   plans: defineTable({
     worldId: v.id('worlds'),
-    agentId: agentId,
-    created: v.number(),
+    agentId: agentId
   }).index('agent', ['worldId', 'agentId']),
 
   tasks: defineTable({

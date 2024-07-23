@@ -16,8 +16,8 @@ export function xmlTasks(tasks: (SerializedTask & { subtasks?: string })[]): str
         }  });
     }
 
-    const taskMap = new Map<string, SerializedTask >();
-    const rootTasks: SerializedTask[] = [];
+    const taskMap = new Map<string, SerializedTask  & { subtasks?: string }>();
+    const rootTasks: (SerializedTask & { subtasks?: string })[] = [];
 
     for (const task of tasks) {
         taskMap.set(task.taskId, task);
@@ -65,9 +65,9 @@ export function xmlTasks(tasks: (SerializedTask & { subtasks?: string })[]): str
             xml += `${indent}  </tasks>\n`;
         }
         else if (task.subtasks) {
-            xml += `${indent}  <tasks>\n`;
+            //xml += `${indent}  <tasks>\n`;
             xml += `${indent}    ${task.subtasks}`;
-            xml += `${indent}  </tasks>\n`;
+            //xml += `${indent}  </tasks>\n`;
 
         }
         
@@ -81,6 +81,8 @@ export function xmlTasks(tasks: (SerializedTask & { subtasks?: string })[]): str
         xmlTree += buildTaskXml(rootTask, '  ');
     }
     xmlTree += '</tasks>';
+
+    console.log(xmlTree);
 
     return xmlTree;
 }

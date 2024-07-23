@@ -111,8 +111,8 @@ export default function ConvosAndPlansTracker({
     const innerWidth = svgWidth - margin.left - margin.right;
     const innerHeight = svgHeight - margin.top - margin.bottom;
   
-    const minTime = Math.min(...conversations?.map(c => c.created)??[], ...plans?.map(p => p.created)??[]);
-    const maxTime = Math.max(...conversations?.map(c => c.created)??[], ...plans?.map(p => p.created)??[]);
+    const minTime = Math.min(...conversations?.map(c => c.created)??[], ...plans?.map(p => p._creationTime)??[]);
+    const maxTime = Math.max(...conversations?.map(c => c.created)??[], ...plans?.map(p => p._creationTime)??[]);
     const totalTime = maxTime - minTime;
   
     const scaleX = (time: number) => ((time-minTime) / totalTime) * innerWidth;
@@ -183,7 +183,7 @@ export default function ConvosAndPlansTracker({
                       {player.plans.map(plan => (
                         <rect
                           key={plan._id}
-                          x={scaleX(plan.created) - 8}
+                          x={scaleX(plan._creationTime) - 8}
                           y={scaleY(index) - 8}
                           width={16} // Total width of the square
                           height={16} // Total height of the square

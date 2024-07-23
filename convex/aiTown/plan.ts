@@ -14,7 +14,6 @@ const selfInternal = internal.aiTown.plan;
 
 export const serializedPlan = {
     id: v.id('plans'),
-    created: v.number(),
     tasks: v.optional(
         v.array(
             v.object(serializedTask)
@@ -26,13 +25,11 @@ export type SerializedPlan = ObjectType<typeof serializedPlan>;
   
 export class Plan {
     id: Id<'plans'>;
-    created: number;
     tasks?: Map<string, Task>;
 
     constructor(serialized: SerializedPlan) {
-        const { id,  created, tasks } = serialized;
+        const { id, tasks } = serialized;
         this.id = id;
-        this.created = created;
         if (tasks) {
             this.tasks = parseMap(tasks, Task, (t) => t.taskId);
         }
@@ -42,7 +39,6 @@ export class Plan {
     
         return {
             id: this.id,
-            created: this.created,
             tasks: this.tasks && [...this.tasks.values()].map((t) => t.serialize()),
         };
     };
@@ -103,7 +99,7 @@ export async function reflectOnPlan(
 
     const newPlanId = await ctx.runMutation(
         selfInternal.createPlan,
-        {worldId, agentId, now}
+        {worldId, agentId}
     );
 
     const args={
@@ -119,22 +115,23 @@ export async function reflectOnPlan(
 
     const tasks : SerializedTask[] | undefined = await generateTasks(args);
 
-    if (tasks){
+    if (tasks && tasks.length > 0) {
         for (const task of tasks) {
             task.planId = newPlanId;
         }
         await ctx.runMutation(internal.aiTown.task.insertTasks, {worldId, tasks});
+
+        const newSerializedPlan = {
+            id: newPlanId,
+            tasks
+        };
+
+        console.log(newSerializedPlan);
+
+        return newSerializedPlan
     }
 
-    const newSerializedPlan = {
-        id: newPlanId,
-        created: now,
-        tasks
-    };
-
-    console.log(newSerializedPlan);
-
-    return newSerializedPlan
+    return undefined;
 }
 
 export function findTaskParents(taskId: string, planTasks : SerializedTask []){
@@ -208,7 +205,7 @@ export const getPlan = internalQuery({
     }  
 });
 
-// I wanted to use the same function for both internal queries and normal queries, but I couldn't find a way to do it
+// I wanted to use the same function for both internal queries and api queries, but I couldn't be sure about the best way to do it so I duplicated the function
 export const getPlanTasks = query({
     args: {
         worldId: v.id('worlds'),
@@ -225,14 +222,12 @@ export const getPlanTasks = query({
 export const createPlan = internalMutation({
     args: {
       worldId: v.id('worlds'),
-      agentId,
-      now: v.number(),
+      agentId
     },
-    handler: async (ctx, { worldId, agentId, now}) => {
+    handler: async (ctx, { worldId, agentId}) => {
       const planId = await ctx.db.insert('plans', {
         worldId,
-        agentId,
-        created: now,
+        agentId
       });
       return planId;
     },

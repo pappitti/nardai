@@ -148,7 +148,7 @@ export const agentDoSomething = internalAction({
       // meaning motivation to reflect on memories and create or update a plan
         await reflectOnMemories(ctx, args.worldId, player.id as GameId<'players'>);
         
-        const newPlan : SerializedPlan = await reflectOnPlan(
+        const newPlan : SerializedPlan | undefined = await reflectOnPlan(
           ctx,
           args.worldId,
           agent.id as GameId<'agents'>,
