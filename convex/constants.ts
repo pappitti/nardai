@@ -1,6 +1,6 @@
 import { TeamName } from "../data/teams";
 
-export const ACTION_TIMEOUT = 120_000; // more time for local dev
+//export const ACTION_TIMEOUT = 120_000; // more time for local dev, deactivated for planning//
 // export const ACTION_TIMEOUT = 60_000;// normally fine
 
 export const IDLE_WORLD_TIMEOUT = 5 * 60 * 1000;
@@ -21,10 +21,12 @@ export const COLLISION_THRESHOLD = 0.75;
 export const MAX_HUMAN_PLAYERS = 8;
 
 // Don't talk to anyone for 15s after having a conversation.
-export const CONVERSATION_COOLDOWN = 15000;
+// increased to 40s with planning
+export const CONVERSATION_COOLDOWN = 40000;
 
 // Don't do another activity for 10s after doing one.
-export const ACTIVITY_COOLDOWN = 10_000;
+// increased to 60s with planning
+export const ACTIVITY_COOLDOWN = 60_000;
 
 // Don't talk to a player within 60s of talking to them.
 export const PLAYER_CONVERSATION_COOLDOWN = 60000;
@@ -32,11 +34,20 @@ export const PLAYER_CONVERSATION_COOLDOWN = 60000;
 // Accept 80% of invites that come from other agents.
 export const INVITE_ACCEPT_PROBABILITY = 0.8;
 
-// Probability that agent decides to reflect/work it plans.
-export const AGENT_MOTIVATION = 0.2;
+// Probability that agent decides to reflect or to do an activity.
+// the rest of the time, the agent will wander.
+export const AGENT_MOTIVATION = {
+  reflection: 0.33,
+  activity: 0.33,
+};
+
+// Don't reflect for 240s after having established a plan 
+//(in all likelyhood, another plan will be estiblablished following a conversation in the interim)
+export const RELFECTION_COOLDOWN = 240000;
 
 // Wait for 1m for invites to be accepted.
-export const INVITE_TIMEOUT = 60000;
+//export const INVITE_TIMEOUT = 60000; 
+export const INVITE_TIMEOUT = 180000;// more time locally
 
 // Wait for another player to say something before jumping in.
 export const AWKWARD_CONVERSATION_TIMEOUT = 60_000; // more time locally
@@ -47,7 +58,7 @@ export const MAX_CONVERSATION_DURATION = 10 * 60_000; // more time locally
 // export const MAX_CONVERSATION_DURATION = 2 * 60_000;
 
 // Leave a conversation if it has more than 8 messages;
-export const MAX_CONVERSATION_MESSAGES = 8;
+export const MAX_CONVERSATION_MESSAGES = 10;
 
 // Wait for 1s after sending an input to the engine. We can remove this
 // once we can await on an input being processed.
@@ -76,6 +87,7 @@ type ActivityInput = {
   teams: TeamName[];
 };
 
+// TODO : turn this into functions to be called by the LLM
 export const ACTIVITIES : ActivityInput[] = [
   { 
     description: 'Writing a memo', 

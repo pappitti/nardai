@@ -26,12 +26,13 @@ export function Plans({
             return;
         };
         setPlanState(plan);
+        console.log('plan', planState);
     }, [plan, planTasks]);
     
     return (
         <div className="desc my-6">
             <div className="text-base text-slate-400 sm:text-sm">
-              {planState && planState.map((task) => 
+              {planState && planState.length>0 && planState.map((task) => 
                 <div key={task.taskId} 
                   style={{ 
                     marginTop: (task.taskId.split('.').length === 1 && task.taskId!='0') ? '1rem' : '0.5rem', 
@@ -44,6 +45,9 @@ export function Plans({
                   <div>required : {[...(task.requiredAgents||[]),...(task.requiredTeams||[])].join(', ')}</div>
                 </div>
                 )
+              }
+              {!planState || planState.length===0 && 
+                <div>Failed to generate tasks for this plan...</div>
               }
             </div>
           </div>

@@ -12,7 +12,7 @@ import {
 import { assertNever } from '../util/assertNever';
 import { serializedAgent } from './agent';
 import { serializedPlan, SerializedPlan, reflectOnPlan } from './plan';
-import { ACTIVITIES, ACTIVITY_COOLDOWN, CONVERSATION_COOLDOWN, AGENT_MOTIVATION } from '../constants';
+import { ACTIVITIES, ACTIVITY_COOLDOWN, CONVERSATION_COOLDOWN, AGENT_MOTIVATION, RELFECTION_COOLDOWN } from '../constants';
 import { api, internal } from '../_generated/api';
 import { sleep } from '../util/sleep';
 import { serializedPlayer } from './player';
@@ -141,10 +141,12 @@ export const agentDoSomething = internalAction({
     const recentlyAttemptedInvite =
       agent.lastInviteAttempt && now < agent.lastInviteAttempt + CONVERSATION_COOLDOWN;
     const recentActivity = player.activity && now < player.activity.until + ACTIVITY_COOLDOWN;
+    const recentPlan = agent.plan && now < (agent.plan.creationTime ?? 0 ) + RELFECTION_COOLDOWN;
+    const agentMotivation= Math.random();
     
     if (!player.pathfinding) {
       // decide first if agent wants to work on a plan
-      if (Math.random() < AGENT_MOTIVATION) {
+      if (!recentPlan && agentMotivation < AGENT_MOTIVATION.reflection) {
       // meaning motivation to reflect on memories and create or update a plan
         await reflectOnMemories(ctx, args.worldId, player.id as GameId<'players'>);
         
@@ -170,21 +172,9 @@ export const agentDoSomething = internalAction({
 
         return
       }
-      // Decide whether to do an activity or wander somewhere.
-      else if (recentActivity || justLeftConversation) {
-        await sleep(Math.random() * 1000);
-        await ctx.runMutation(api.aiTown.main.sendInput, {
-          worldId: args.worldId,
-          name: 'finishDoSomething',
-          args: {
-            operationId: args.operationId,
-            agentId: agent.id,
-            destination: wanderDestination(map),
-          },
-        });
-        return;
-      } else {
-        // TODO: have LLM choose the activity & emoji
+
+      // TODO: have LLM choose the activity & emoji
+      else if (!recentActivity && !justLeftConversation && agentMotivation < (AGENT_MOTIVATION.reflection+AGENT_MOTIVATION.activity)) {
         let relevantActivities
         if (agentDescription?.teamType !== null){
           relevantActivities = ACTIVITIES.filter((a)=>a.teams.includes(agentDescription?.teamType!));
@@ -209,8 +199,23 @@ export const agentDoSomething = internalAction({
           });
         return;
       }
+      // wander if agent is not reflecting or doing an activity
+      else {
+        await sleep(Math.random() * 1000);
+        await ctx.runMutation(api.aiTown.main.sendInput, {
+          worldId: args.worldId,
+          name: 'finishDoSomething',
+          args: {
+            operationId: args.operationId,
+            agentId: agent.id,
+            destination: wanderDestination(map),
+          },
+        });
+        return;
+      }
     }
     // if agent is wandering, try to engage in conversation 
+    // TODO : only if agent is not going somewhere specific pusutan to a plan (need to add a property to Agent class)
     const invitee =
       justLeftConversation || recentlyAttemptedInvite
         ? undefined

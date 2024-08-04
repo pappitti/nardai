@@ -43,7 +43,7 @@ export default function ConvosAndPlansTracker({
     useEffect(() => {
       if (width && height) {
         setSvgWidth(width);
-        setSvgHeight(height); // Assuming you still want to subtract 120
+        setSvgHeight(height); //  subtract 120?
       }
     }, [width, height]);
 
@@ -194,8 +194,11 @@ export default function ConvosAndPlansTracker({
                           className="cursor-pointer"
                         />
                       ))}
-                      <text x={-15} y={scaleY(index)} dy="0.35em" textAnchor="end">
+                      <text x={-15} y={scaleY(index)-10} dy="0.35em" textAnchor="end">
                         {player.name}
+                      </text>
+                      <text x={-15} y={scaleY(index)+10} dy="0.35em" textAnchor="end">
+                        {worldAgents[player.pId]}
                       </text>
                     </g>
                   //);

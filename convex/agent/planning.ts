@@ -82,7 +82,7 @@ export function xmlTasks(tasks: (SerializedTask & { subtasks?: string })[]): str
     }
     xmlTree += '</tasks>';
 
-    console.log(xmlTree);
+    console.log('planning : xmltasks',xmlTree);
 
     return xmlTree;
 }

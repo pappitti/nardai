@@ -100,6 +100,8 @@ export async function rememberConversation(
 
   // add system prompt and change the role to assistant for the response?
   llmMessages.push({ role: 'assistant', content: 'Summary:' });
+  console.log('Rememeber conversation input', llmMessages);
+
   const { content } = await chatCompletion({
     messages: llmMessages,
     max_tokens: 500,

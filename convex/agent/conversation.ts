@@ -4,7 +4,7 @@ import { ActionCtx, internalQuery } from '../_generated/server';
 import { LLMMessage, chatCompletion } from '../util/llm';
 import { asyncMap } from '../util/asyncMap';
 import * as memory from './memory';
-import { SerializedPlan, findTaskParents} from '../aiTown/plan';
+import { SerializedPlan, findParentStrings} from '../aiTown/plan';
 import { SerializedPlayer } from '../aiTown/player';
 import { api, internal } from '../_generated/api';
 import * as embeddingsCache from './embeddingsCache';
@@ -263,8 +263,7 @@ async function planPrompt(
       if (tasksInvolvingOtherAgent && tasksInvolvingOtherAgent.length > 0) {
         prompt.push(`As part of your plan, you intended to talk to ${otherPlayer.name} regarding the following :`);
 
-        const taskParentStrings = tasksInvolvingOtherAgent.map((task) => findTaskParents(task.taskId, agent.plan!.tasks!));
-
+        const taskParentStrings = findParentStrings(tasksInvolvingOtherAgent);
         const taskEmbeddings = taskParentStrings && await embeddingsCache.fetchBatch(
           ctx,
           taskParentStrings,
@@ -292,7 +291,7 @@ async function planPrompt(
       if (tasksInvolvingOtherAgentTeam && tasksInvolvingOtherAgentTeam.length > 0) {
         prompt.push(`As part of your plan, you intended to talk to a memnber of the ${otherAgentTeam} regarding the following :`);
         
-        const taskParentStrings = tasksInvolvingOtherAgentTeam.map((task) => findTaskParents(task.taskId, agent.plan!.tasks!));
+        const taskParentStrings = findParentStrings(tasksInvolvingOtherAgentTeam);
 
         const taskEmbeddings = taskParentStrings && await embeddingsCache.fetchBatch(
           ctx,

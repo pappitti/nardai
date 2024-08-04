@@ -5,7 +5,7 @@ import { serializedPlayer } from './player';
 import { Plan, serializedPlan, SerializedPlan } from './plan';
 import { Game } from './game';
 import {
-  ACTION_TIMEOUT,
+  //ACTION_TIMEOUT,
   AWKWARD_CONVERSATION_TIMEOUT,
   CONVERSATION_COOLDOWN,
   CONVERSATION_DISTANCE,
@@ -28,7 +28,7 @@ export class Agent {
   id: GameId<'agents'>;
   playerId: GameId<'players'>;
   toRemember?: GameId<'conversations'>;
-  updatePlan?: SerializedPlan;
+  //updatePlan?: SerializedPlan;
   lastConversation?: number;
   lastInviteAttempt?: number;
   inProgressOperation?: {
@@ -47,7 +47,7 @@ export class Agent {
       serialized.toRemember !== undefined
         ? parseGameId('conversations', serialized.toRemember)
         : undefined;
-    this.updatePlan = serialized.plan;
+    // this.updatePlan = serialized.plan;
     this.lastConversation = lastConversation;
     this.lastInviteAttempt = lastInviteAttempt;
     this.inProgressOperation = inProgressOperation;
@@ -64,12 +64,14 @@ export class Agent {
       throw new Error(`Invalid player ID ${this.playerId}`);
     }
     if (this.inProgressOperation) {
-      if (now < this.inProgressOperation.started + ACTION_TIMEOUT) {
+      // deactivating action timeout to allow agent to reflect on memories and plan
+      
+      //if (now < this.inProgressOperation.started + ACTION_TIMEOUT) {
         // Wait on the operation to finish.
         return;
-      }
-      console.log(`Timing out ${JSON.stringify(this.inProgressOperation)}`);
-      delete this.inProgressOperation;
+      // }
+      // console.log(`Timing out ${JSON.stringify(this.inProgressOperation)}`);
+      // delete this.inProgressOperation;
     }
     const conversation = game.world.playerConversation(player);
     const member = conversation?.participants.get(player.id);
@@ -80,8 +82,10 @@ export class Agent {
     if (doingActivity && (conversation || player.pathfinding)) {
       player.activity!.until = now;
     }
-    // Check to see if we have a conversation we need to remember.
+    
     // NOTE : this was initially after the conversation check, but I moved it here as I was worried that it could be the source of an error (sometimes agent could not remember the conversation and I assumed it had laready been archived)
+    
+    // Check to see if we have a conversation we need to remember.
     if (this.toRemember) {
       // Fire off the action to remember the conversation.
       console.log(`Agent ${this.id} remembering conversation ${this.toRemember}`);
@@ -95,18 +99,20 @@ export class Agent {
       delete this.toRemember;
       return;
     }
-    // agent updates its plan
-    if (this.updatePlan) {
-      // Fire off the action to updates the plan.
-      console.log(`Agent ${this.id} updating plan`);
-      this.startOperation(game, now, 'agentUpdatePlan', {
-        worldId: game.worldId,
-        agentId: this.id,
-        plan: this.updatePlan,
-      });
-      delete this.updatePlan;
-      return;
-    }
+
+    // agent updates its plan [commented out as it should no longer happen]
+    // if (this.updatePlan) {
+    //   // Fire off the action to updates the plan.
+    //   console.log(`Agent ${this.id} updating plan`);
+    //   this.startOperation(game, now, 'agentUpdatePlan', {
+    //     worldId: game.worldId,
+    //     agentId: this.id,
+    //     plan: this.updatePlan,
+    //   });
+    //   delete this.updatePlan;
+    //   return;
+    // }
+
     // If we're not in a conversation, do something.
     // If we aren't doing an activity or moving, do something.
     // If we have been wandering but haven't thought about something to do for
@@ -117,6 +123,10 @@ export class Agent {
         player: player.serialize(),
         otherFreePlayers: [...game.world.players.values()]
           .filter((p) => p.id !== player.id)
+          .filter((p)=> ![...game.world.agents.values()] // checking that agents are not doing anything, otherwise they may ever accept the invite (TODO : when agents are activiely selecting a destination, only select agents that are wandering)
+            .filter((a) => this.inProgressOperation)
+            .map((a) => a.playerId)
+            .includes(p.id))
           .filter(
             (p) => ![...game.world.conversations.values()].find((c) => c.participants.has(p.id)),
           )
@@ -287,7 +297,7 @@ export class Agent {
       id: this.id,
       playerId: this.playerId,
       toRemember: this.toRemember,
-      updatePlan: this.updatePlan,
+      //updatePlan: this.updatePlan,
       lastConversation: this.lastConversation,
       lastInviteAttempt: this.lastInviteAttempt,
       inProgressOperation: this.inProgressOperation,
@@ -300,7 +310,7 @@ export const serializedAgent = {
   id: agentId,
   playerId: playerId,
   toRemember: v.optional(conversationId),
-  updatePlan: v.optional(v.object(serializedPlan)),
+  //updatePlan: v.optional(v.object(serializedPlan)),
   lastConversation: v.optional(v.number()),
   lastInviteAttempt: v.optional(v.number()),
   inProgressOperation: v.optional(
@@ -322,9 +332,9 @@ export async function runAgentOperation(ctx: MutationCtx, operation: string, arg
     case 'agentRememberConversation':
       reference = internal.aiTown.agentOperations.agentRememberConversation;
       break;
-    case 'agentUpdatePlan':
-      reference = internal.aiTown.agentOperations.agentUpdatePlan;
-      break;
+    // case 'agentUpdatePlan':
+    //   reference = internal.aiTown.agentOperations.agentUpdatePlan;
+    //   break;
     case 'agentGenerateMessage':
       reference = internal.aiTown.agentOperations.agentGenerateMessage;
       break;

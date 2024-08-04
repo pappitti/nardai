@@ -19,6 +19,7 @@ import { query } from '../_generated/server';
 
 const pathfinding = v.object({
   destination: point,
+  // todo : wandering or specific destination
   started: v.number(),
   state: v.union(
     v.object({

@@ -44,6 +44,7 @@ export async function fetchBatch(ctx: ActionCtx, texts: string[]) {
   if (toWrite.length > 0) {
     await ctx.runMutation(selfInternal.writeEmbeddings, { embeddings: toWrite });
   }
+  console.log('Fetched embeddings hits', cacheResults.length);
   return {
     embeddings: results,
     hits: cacheResults.length,

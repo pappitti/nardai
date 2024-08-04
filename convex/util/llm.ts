@@ -5,11 +5,11 @@ export const LLM_CONFIG = {
    */
   ollama: true,
   url: 'http://127.0.0.1:11434',
-  chatModel: 'llama3:instruct' as const,
+  chatModel: 'llama3.1:8b' as const,
   embeddingModel: 'mxbai-embed-large',
   embeddingDimension: 1024,
   stopWords: [],
-  //hermes2llama38b, llama3:8b, adrienbrault/nous-hermes2theta-llama3-8b:q5_K_M, llama3:instruct, mistral:v0.3
+  //hermes2llama38b, llama3:8b, adrienbrault/nous-hermes2theta-llama3-8b:q5_K_M, llama3:instruct, mistral:v0.3,llama3.1:8b, gemma2:9b, mistral-nemo:12b
   // chatModel: 'llama3' as const, // Default from AiTown
   // embeddingModel: 'llama3',
   // embeddingDimension: 4096,
@@ -35,9 +35,11 @@ export const LLM_CONFIG = {
 const chatTemplates = {
   'hermes2llama38b': chatML,
   'llama3:8b': llama3,
+  'llama3.1:8b': llama3_1,
   'llama3:instruct': llama3,
   'adrienbrault/nous-hermes2theta-llama3-8b:q5_K_M': chatML,
   'mistral:v0.3': mistral_v03,
+  'mistral-nemo:12b': mistral_nemo,
 };
 
 function chatML(messages:LLMMessage[]) {
@@ -74,6 +76,23 @@ function llama3(messages:LLMMessage[]) {
   return {formattedMessages, templateStopWords};
 }
 
+function llama3_1(messages:LLMMessage[]) {
+  let formattedMessages="<|begin_of_text|>";
+  const templateStopWords = ['<|eot_id|>','<|eom_id|>'];
+  for (const message of messages) {
+    if (message.role === 'user') {
+      formattedMessages=formattedMessages+`<|start_header_id|>user<|end_header_id|>\n${message.content}<|eot_id|>\n`
+    }
+    if (message.role === 'assistant') {
+      formattedMessages=formattedMessages+`<|start_header_id|>assistant<|end_header_id|>\n${message.content}`
+    }
+    if (message.role === 'system') {
+      formattedMessages=formattedMessages+`<|start_header_id|>system<|end_header_id|>\n${message.content}<|eot_id|>\n`
+    }
+  } 
+  return {formattedMessages, templateStopWords};
+}
+
 function mistral_v03(messages:LLMMessage[]) {
 
   let formattedMessages="";
@@ -84,6 +103,36 @@ function mistral_v03(messages:LLMMessage[]) {
     }
     if (message.role === 'assistant') {
       formattedMessages=formattedMessages+message.content+`</s>`
+    }
+  } 
+  return {formattedMessages, templateStopWords};
+}
+
+function mistral_nemo(messages:LLMMessage[]) {
+
+  let formattedMessages="";
+  const templateStopWords = ["[INST]","[/INST]"];
+  for (const message of messages) {
+    if (message.role === 'user' || message.role === 'system') {
+      formattedMessages=formattedMessages+`<s>[INST] ${message.content}[/INST] </s>`
+    }
+    if (message.role === 'assistant') {
+      formattedMessages=formattedMessages+`<s>`+message.content
+    }
+  } 
+  return {formattedMessages, templateStopWords};
+}
+
+function gemma2(messages:LLMMessage[]) {
+
+  let formattedMessages="<bos>";
+  const templateStopWords = ['<end_of_turn>'];
+  for (const message of messages) {
+    if (message.role === 'user' || message.role === 'system') {
+      formattedMessages=formattedMessages+`<start_of_turn>user\n${message.content}<end_of_turn>\n`
+    }
+    if (message.role === 'assistant') {
+      formattedMessages=formattedMessages+message.content+`"<start_of_turn>model\n"`
     }
   } 
   return {formattedMessages, templateStopWords};
@@ -150,7 +199,7 @@ export async function chatCompletion(
     body.stop = [...stopWords];
     body.raw = true; // override the template in OLLAMA (I can't be 100% sure it actually works when using the OpenAI API but output looks good so I keep it)
   }
-  console.log(body);
+  //console.log(body);
   const {
     result: content,
     retries,
@@ -184,7 +233,7 @@ export async function chatCompletion(
       if (content === undefined) {
         throw new Error('Unexpected result from OpenAI: ' + JSON.stringify(json));
       }
-      console.log(content);
+      //console.log(content);
       return content;
     }
   });

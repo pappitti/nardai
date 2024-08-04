@@ -61,7 +61,7 @@ export const Descriptions : AgentDescriptionInput []= [
     name: 'Ober',
     character: 'f7',
     teamType: 'investment team',
-    identity: `Ober is the Portfolio Manager in the Credit team. He is decisive but he makes decisions based on his instrinct. He is friendly.`,
+    identity: `Ober is the Portfolio Manager in the Credit team. He is decisive but he makes decisions based on his instinct. He is friendly.`,
     plan: 'You want to make as much money as possible.',
   },
   {

@@ -32,7 +32,10 @@ export const agentInputs = {
         delete agent.inProgressOperation;
         delete agent.toRemember;
         if (args.plan) {
-          agent.updatePlan=args.plan;
+          //agent.updatePlan=args.plan;
+          const newPlan = new Plan (args.plan);
+          newPlan.creationTime = now;
+          agent.plan = newPlan;
         }
       }
       return null;
@@ -63,7 +66,10 @@ export const agentInputs = {
       delete agent.inProgressOperation;
       const player = game.world.players.get(agent.playerId)!;
       if (args.plan) {
-        agent.updatePlan = args.plan;
+        //agent.updatePlan = args.plan;
+        const newPlan = new Plan (args.plan);
+        newPlan.creationTime = now;
+        agent.plan = newPlan;
       }
       if (args.invitee) {
         const inviteeId = parseGameId('players', args.invitee);
@@ -107,6 +113,7 @@ export const agentInputs = {
         throw new Error(`Agent ${agentId} didn't have a plan to add`);
       }
       const newPlan = new Plan (args.plan);
+      newPlan.creationTime = now;
       agent.plan = newPlan;
       
       return null;
@@ -178,7 +185,7 @@ export const agentInputs = {
           lastInviteAttempt: undefined,
           toRemember: undefined,
           plan: undefined,
-          updatePlan: undefined,
+          //updatePlan: undefined,
         }),
       );
       game.agentDescriptions.set(

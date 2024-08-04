@@ -18,7 +18,8 @@ import { startConversationMessage } from './agent/conversation';
 import { GameId } from './aiTown/ids';
 
 // Clear all of the tables except for the embeddings cache.
-const excludedTables: Array<TableNames> = ['embeddingsCache'];
+//const excludedTables: Array<TableNames> = ['embeddingsCache'];
+const excludedTables: Array<TableNames> = []; // if you want to clear all tables
 
 export const wipeAllTables = internalMutation({
   handler: async (ctx) => {

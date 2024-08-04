@@ -303,7 +303,9 @@ function parseXMLTasks(xml: string) {
     }
 
     function parseTask (taskElement: any, parentChainId: string = '', index:number): any {
-        if (!taskElement.description?.["#text"]) {
+
+        let description = taskElement.description?.["#text"] ?? taskElement["@_description"] ?? taskElement["@_name"] ?? taskElement["#text"]; // common error from model
+        if (!description) {
             console.error("Task missing description", taskElement);
             return;
         }
@@ -315,7 +317,7 @@ function parseXMLTasks(xml: string) {
             depth: parentChainId
                 ? parentChainId.split(".").length 
                 : 0, // old : parseInt(taskElement.getAttribute("depth") || "0"),
-            description: taskElement.description?.["#text"] || "", // should never be an empty string given check above
+            description: description || "", // should never be an empty string given check above
             status: taskElement.status?.["#text"] || "",
             nthChild: index, //old : parseInt(taskElement.querySelector("nthChild")?.textContent || "0"),
             parentTaskId: parentChainId,

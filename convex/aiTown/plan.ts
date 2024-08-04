@@ -14,6 +14,7 @@ const selfInternal = internal.aiTown.plan;
 
 export const serializedPlan = {
     id: v.id('plans'),
+    creationTime : v.optional(v.number()),
     tasks: v.optional(
         v.array(
             v.object(serializedTask)
@@ -25,11 +26,13 @@ export type SerializedPlan = ObjectType<typeof serializedPlan>;
   
 export class Plan {
     id: Id<'plans'>;
+    creationTime?: number;
     tasks?: Map<string, Task>;
 
     constructor(serialized: SerializedPlan) {
-        const { id, tasks } = serialized;
+        const { id, creationTime, tasks } = serialized;
         this.id = id;
+        this.creationTime = creationTime;
         if (tasks) {
             this.tasks = parseMap(tasks, Task, (t) => t.taskId);
         }
@@ -39,6 +42,7 @@ export class Plan {
     
         return {
             id: this.id,
+            creationTime: this.creationTime,
             tasks: this.tasks && [...this.tasks.values()].map((t) => t.serialize()),
         };
     };
@@ -64,38 +68,42 @@ export async function reflectOnPlan(
     const planTasks= planId && await ctx.runQuery(selfInternal.getPlan, {worldId, planId});
 
     let xmlPlan : string | undefined;
+    let memoriesByTask : string[] | undefined;
     if (planTasks){
         xmlPlan = xmlTasks(planTasks);
-    }
 
-    // TODO : everything below in a if statement ? if (planTasks) { ... }
+        // To give a better context to each task, we reconstruct a string with its parents up to the root
+        const taskParentStrings= findParentStrings(planTasks);
 
-    // To give a better context to each task, we reconstruct a string with its parents up to the root
-    const taskParentStrings= planTasks && planTasks
-        .filter((t)=> 
-            t.taskId.split('.').length===3 // ids are of the form "1.2.3" with one index for each level
-            && t.status!=="completed") // only tasks and that are not completed
-        .map((task) => findTaskParents(task.taskId, planTasks));
+        // get memories, based on parentStrings
+        const taskEmbeddings = taskParentStrings && await embeddingsCache.fetchBatch(
+            ctx,
+            taskParentStrings,
+        );
 
-    // get memories, based on parentStrings
-    const taskEmbeddings = taskParentStrings && await embeddingsCache.fetchBatch(
-        ctx,
-        taskParentStrings,
-      );
+        console.log({
+            agentId,
+            "planId":planId, 
+            "plan tasks":planTasks, 
+            "task list":taskParentStrings, 
+            "task embeddings":taskEmbeddings?.hits
+        });
 
-    const memories= taskEmbeddings && await asyncMap(
-        taskEmbeddings.embeddings, 
-        async (embedding) => {
-            const taskMemories = await memory.searchMemories(ctx, playerDescription.playerId as GameId<'players'>, embedding, 3);
-            return taskMemories;
+        const memories= taskEmbeddings && await asyncMap(
+            taskEmbeddings.embeddings, 
+            async (embedding) => {
+                const taskMemories = await memory.searchMemories(ctx, playerDescription.playerId as GameId<'players'>, embedding, 3);
+                return taskMemories;
+            }
+        );
+
+        if (memories?.length !== taskParentStrings?.length) {
+            throw new Error('Mismatch between memories and taskParentStrings');
         }
-    );
 
-    if (memories?.length !== taskParentStrings?.length) {
-        throw new Error('Mismatch between memories and taskParentStrings');
+        memoriesByTask = taskParentStrings && memories && taskParentStrings.map((task, i) => `Relevant memories related to task in plan : ${task}\n ${memories[i].map((m) => m.description).join('\n')}`);
+
     }
-
-    const memoriesByTask = taskParentStrings && memories && taskParentStrings.map((task, i) => `Relevant memories related to task in plan : ${task}\n ${memories[i].map((m) => m.description).join('\n')}`);
 
     const newPlanId = await ctx.runMutation(
         selfInternal.createPlan,
@@ -126,7 +134,7 @@ export async function reflectOnPlan(
             tasks
         };
 
-        console.log(newSerializedPlan);
+        // console.log(newSerializedPlan);
 
         return newSerializedPlan
     }
@@ -134,25 +142,27 @@ export async function reflectOnPlan(
     return undefined;
 }
 
-export function findTaskParents(taskId: string, planTasks : SerializedTask []){
-    const allTasks = parseMap(planTasks, Task, (t) => t.taskId);
-    let parentString = '';
-    const targetTask = allTasks.get(taskId);
-    if (!targetTask) {
-        return parentString;
+export function findParentStrings(planTasks: SerializedTask[]):  string[] {
+    const sortedTasks = planTasks.sort((a, b) => a.taskId.split('.').length - b.taskId.split('.').length);
+    const parentChains = new Map<string, string[]>();
+    const childlessTasks: string[] = [];
+  
+    for (const task of sortedTasks) {
+      const parentIds = task.taskId.split('.').slice(0, -1);
+      const parentId = parentIds.join('.');
+      const currentChain = parentId ? [...(parentChains.get(parentId) || []), task.description] : [task.description];
+  
+      if (sortedTasks.some(t => t.taskId.startsWith(task.taskId + '.'))) {
+        // This task has children, store its chain for future use
+        parentChains.set(task.taskId, currentChain);
+      } else {
+        // This is a childless task, add it to the result
+        childlessTasks.push(currentChain.join(' > subtask : '));
+      }
     }
-    parentString += targetTask.description;
-    let parentId = targetTask.parentTaskId;
-    while (parentId) {
-        const parentTask = allTasks.get(parentId);
-        if (!parentTask) {
-            break;
-        }
-        parentString += " > subtask : " + parentTask.description;
-        parentId = parentTask.parentTaskId;
-    }
-    return parentString;
-} 
+  
+    return childlessTasks;
+  }
 
 export const loadData = internalQuery({
     args: {

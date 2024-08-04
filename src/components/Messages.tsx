@@ -113,9 +113,8 @@ export function Messages({
     else {
       const participants : [string|undefined,number][] = [...conversation.doc.participants.keys()]
         .map((pId)=>[
-          descriptions?.playerDescriptions.find((p) => p.playerId === pId)
-        ?.name,
-        (conversation.doc.participants.get(pId)?.status as { kind: "participating"; started: number }).started // We know this is a participating status given how the conversation is filtered in ConversationList
+          descriptions?.playerDescriptions.find((p) => p.playerId === pId)?.name,
+          (conversation.doc.participants.get(pId)?.status as { kind: "participating"; started: number }).started // We know this is a participating status given how the conversation is filtered in ConversationList
         ]);
       membershipNodes.push({
         node: (
