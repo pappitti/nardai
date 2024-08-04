@@ -8,7 +8,7 @@ import { GameId, agentId, conversationId, playerId } from '../aiTown/ids';
 import { SerializedPlayer } from '../aiTown/player';
 import { reflectOnPlan } from '../aiTown/plan';
 import { memoryFields } from './schema';
-import {xmlTasks} from './planning';
+import { jsonTasks } from './planning';
 
 // How long to wait before updating a memory's last access time.
 export const MEMORY_ACCESS_THROTTLE = 300_000; // In ms
@@ -51,35 +51,13 @@ export async function rememberConversation(
     {
       role: 'user',
       // take into account the plan to assess the conversation. highlight if you learned something that could be helpful in context of your plan.
-      content: `You are ${player.name}, and you just finished a conversation with ${otherPlayer.name}. I would like you to summarize the conversation from ${player.name}'s perspective, using first-person pronouns like "I," and add what information you learnt ${planTasks?", and if this interaction could be helpful in the context of your current plan. if the conversation is helpful to a certain task, use the full task description to refer to it, do not use the task id.":""}.`,
+      content: `You are ${player.name}, and you just finished a conversation with ${otherPlayer.name}. I would like you to summarize the conversation from ${player.name} your perspective, using first-person pronouns like "I," and add what information you learnt ${planTasks?", and if this interaction could be helpful in the context of your current plan. If the conversation is helpful to a certain task, use the full task description to refer to it, do not use the task id.":""}.`,
     },
   ];
 
   if (planTasks) {
-        llmMessages[0].content += ` Your current plan is detail below in xml format with a nested structure for each task : <task id="[unique_id]" depth="[depth_number]">
-        <description>[task_description]</description>
-        <status>["TODO" | "completed" | "inProgress"]</status>
-        <!-- if tasks need to be completed in a certain order, include the position in the sequence -->
-        <nthChild>[nth_child]</nthChild>    
-        <!-- Optional elements below -->
-        <keyTakeaways>[key_takeaways]</keyTakeaways>
-        <startTime>[start_time]</startTime>
-        <finishBefore>[finish_before_time]</finishBefore>
-        <requiredTeams>
-          <team>[team_name]</team>
-          <!-- Add more team tags as needed -->
-        </requiredTeams>
-        <requiredAgents>
-          <agent>[agent_name]</agent>
-          <!-- Add more agent tags as needed -->
-        </requiredAgents>
-        <tasks>
-        <!-- Nested tasks would go here -->
-        </tasks>
-      </task>
-      
-      current plan : 
-      ${xmlTasks(planTasks)}`;
+        llmMessages[0].content += ` Your current plan is detail below in JSON format : 
+      ${jsonTasks(planTasks)}`;
   };
 
   const authors = new Set<GameId<'players'>>();

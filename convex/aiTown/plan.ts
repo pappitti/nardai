@@ -4,7 +4,7 @@ import { internal } from '../_generated/api';
 import { asyncMap } from '../util/asyncMap';
 import { Doc, Id } from '../_generated/dataModel';
 import { GameId, parseGameId, agentId} from './ids';
-import { xmlTasks } from '../agent/planning';
+import { jsonTasks } from '../agent/planning';
 import * as embeddingsCache from '../agent/embeddingsCache';
 import * as memory from '../agent/memory';
 import { Task, serializedTask, SerializedTask, generateTasks } from './task';
@@ -70,7 +70,7 @@ export async function reflectOnPlan(
     let xmlPlan : string | undefined;
     let memoriesByTask : string[] | undefined;
     if (planTasks){
-        xmlPlan = xmlTasks(planTasks);
+        xmlPlan = jsonTasks(planTasks);
 
         // To give a better context to each task, we reconstruct a string with its parents up to the root
         const taskParentStrings= findParentStrings(planTasks);
